@@ -33,8 +33,7 @@ private:
   double max_speed_linear_;
   double max_speed_angular_;
 
-  Eigen::Vector3d goal_xyz_;
-  Eigen::Vector3d goal_rpy_;
+  Eigen::Affine3d goal_pose_;
   std::vector<double> goal_state_;
 
   Twist twist_; // Current command

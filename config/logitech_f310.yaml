@@ -1,11 +1,11 @@
 controller_configuration:
-  axis_linear_x_inc: 5
-  axis_linear_x_dec: 4
+  axis_linear_z_inc: 4
+  axis_linear_z_dec: 5
   axis_linear_y: 0
-  axis_linear_z: 1
-  axis_angular_roll: 3
+  axis_linear_x: 1
+  axis_angular_yaw: 3
   axis_angular_pitch: 4
-  btn_angular_yaw_inc: 0
-  btn_angular_yaw_dec: 1
+  btn_angular_roll_inc: 0
+  btn_angular_roll_dec: 1
   btn_close_gripper: 5
   btn_open_gripper: 4

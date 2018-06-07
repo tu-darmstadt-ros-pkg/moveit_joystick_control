@@ -36,29 +36,29 @@ void JoystickControl::starting()
     ros::Duration(0.1).sleep();
     ros::spinOnce();
   }
-  Eigen::Affine3d ee_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-  goal_xyz_ = ee_pose.translation();
-  goal_rpy_ = rotToRpy(ee_pose.linear());
+  goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
   ROS_INFO_STREAM("Joystick Control started.");
 }
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
   // Update endeffector pose with current command
-  goal_xyz_ += period.toSec() * twist_.linear;
-  goal_rpy_ += period.toSec() * twist_.angular;
 
-  Eigen::Affine3d goal_pose(rpyToRot(goal_rpy_));
-  goal_pose.translation() = goal_xyz_;
+  Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
+  twist_transform.translation() = period.toSec() * twist_.linear;
+
+  goal_pose_ = goal_pose_ * twist_transform;
+
+
   // Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
   goal_pose_msg.header.frame_id = ik_.getBaseFrame();
 //  goal_pose_msg.header.stamp
-  tf::poseEigenToMsg(goal_pose, goal_pose_msg.pose);
+  tf::poseEigenToMsg(goal_pose_, goal_pose_msg.pose);
   goal_pose_pub_.publish(goal_pose_msg);
 
   // Compute ik
-  if (!ik_.calcInvKin(goal_pose, stateFromList(last_state_, joint_names_), goal_state_)) {
+  if (!ik_.calcInvKin(goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
     return;
   }
 
@@ -113,13 +113,13 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
 Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
 {
   Twist twist;
-  twist.linear.x() = (max_speed_linear_ * (joy.buttons[config_.axis_linear_x_inc] - joy.buttons[config_.axis_linear_x_dec]));
+  twist.linear.x() = max_speed_linear_ * -joy.axes[config_.axis_linear_x];
   twist.linear.y() = max_speed_linear_ * joy.axes[config_.axis_linear_y];
-  twist.linear.z() = max_speed_linear_ * joy.axes[config_.axis_linear_z];
+  twist.linear.z() = (max_speed_linear_ * (joy.buttons[config_.axis_linear_z_inc] - joy.buttons[config_.axis_linear_z_dec]));
 
-  twist.angular.x() = max_speed_angular_ * joy.axes[config_.axis_angular_roll];
+  twist.angular.x() = max_speed_angular_ * (joy.buttons[config_.btn_angular_roll_inc] - joy.buttons[config_.btn_angular_roll_dec]);
   twist.angular.y() = max_speed_angular_ * joy.axes[config_.axis_angular_pitch];
-  twist.angular.z() = max_speed_angular_ * (joy.buttons[config_.btn_angular_yaw_inc] - joy.buttons[config_.btn_angular_yaw_dec]);
+  twist.angular.z() = max_speed_angular_ * joy.axes[config_.axis_angular_yaw];
 
   return twist;
 }
