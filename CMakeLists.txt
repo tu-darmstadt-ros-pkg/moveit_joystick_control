@@ -1,0 +1,62 @@
+cmake_minimum_required(VERSION 2.8.3)
+project(moveit_joystick_control)
+
+## Compile as C++11, supported in ROS Kinetic and newer
+add_compile_options(-std=c++11)
+
+## Find catkin macros and libraries
+find_package(catkin REQUIRED COMPONENTS
+  moveit_core
+  moveit_ros_planning
+  sensor_msgs
+  kdl_parser
+)
+
+###################################
+## catkin specific configuration ##
+###################################
+catkin_package(
+  INCLUDE_DIRS include
+  LIBRARIES moveit_joystick_control
+  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser
+#  DEPENDS system_lib
+)
+
+###########
+## Build ##
+###########
+
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
+
+## Declare a C++ library
+add_library(${PROJECT_NAME}
+  include/${PROJECT_NAME}/joystick_control.h
+  include/${PROJECT_NAME}/controller_configuration.h
+  include/${PROJECT_NAME}/inverse_kinematics.h
+  include/${PROJECT_NAME}/common.h
+
+  src/joystick_control.cpp
+  src/inverse_kinematics.cpp
+  src/common.cpp
+)
+
+## Add cmake target dependencies of the library
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+## Declare a C++ executable
+add_executable(joystick_control_node src/joystick_control_node.cpp)
+
+## Add cmake target dependencies of the executable
+add_dependencies(joystick_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+## Specify libraries to link a library or executable target against
+target_link_libraries(joystick_control_node
+  ${PROJECT_NAME}
+)
