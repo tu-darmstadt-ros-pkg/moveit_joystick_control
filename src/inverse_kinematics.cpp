@@ -57,36 +57,36 @@ bool InverseKinematics::calcInvKin(const Eigen::Affine3d &pose, const std::vecto
       return false;
   }
 
-//  double limit = 10 * M_PI / 180;
+  double limit = 10 * M_PI / 180;
 
-//  // find maximum position change
-//  double min_change_factor = 1;
-//  double requested_change = 0;
-//  for (unsigned int i = 0; i < solution.size(); i++) {
-//      double change = std::abs(seed[i] - solution[i]);
-//      if (change != 0.0) {
-//          double factor = limit/change;
-//          if (factor < min_change_factor) {
-//              min_change_factor = factor;
-//              requested_change = change;
-//          }
-//      }
-//  }
+  // find maximum position change
+  double min_change_factor = 1;
+  double requested_change = 0;
+  for (unsigned int i = 0; i < solution.size(); i++) {
+      double change = std::abs(seed[i] - solution[i]);
+      if (change != 0.0) {
+          double factor = limit/change;
+          if (factor < min_change_factor) {
+              min_change_factor = factor;
+              requested_change = change;
+          }
+      }
+  }
 
-//  // limit joint angle change
-//  if (min_change_factor < 1) {
-//      for (unsigned int i = 0; i < solution.size(); i++) {
-//          double change = solution[i] - seed[i];
-//          solution[i] =  seed[i] + (change * min_change_factor);
-//      }
-//      ROS_WARN_STREAM_THROTTLE(1, "Joint angle change (" << requested_change << ") bigger than max (" << limit << "). Limiting speed with factor: " << min_change_factor << ".");
-//      std::stringstream debug;
-//      debug << "Current\t | \t Requested" << std::endl;
-//      for (unsigned int i = 0; i < solution.size(); i++) {
-//          debug << seed[i] << "\t\t" << solution[i] << std::endl;
-//      }
-//      ROS_WARN_STREAM_THROTTLE(1, debug.str());
-//  }
+  // limit joint angle change
+  if (min_change_factor < 1) {
+      for (unsigned int i = 0; i < solution.size(); i++) {
+          double change = solution[i] - seed[i];
+          solution[i] =  seed[i] + (change * min_change_factor);
+      }
+      ROS_WARN_STREAM_THROTTLE(1, "Joint angle change (" << requested_change << ") bigger than max (" << limit << "). Limiting speed with factor: " << min_change_factor << ".");
+      std::stringstream debug;
+      debug << "Current\t | \t Requested" << std::endl;
+      for (unsigned int i = 0; i < solution.size(); i++) {
+          debug << seed[i] << "\t\t" << solution[i] << std::endl;
+      }
+      ROS_WARN_STREAM_THROTTLE(1, debug.str());
+  }
 
   return true;
 }
