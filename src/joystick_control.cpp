@@ -13,7 +13,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   pnh.param("max_speed_angular", max_speed_angular_, 0.01);
   pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
 
-  pnh.param<std::string>("gripper_name", gripper_name_, "gripper_servo_joint");
+  pnh.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
 
   std::string group_name;
   pnh.param<std::string>("group_name", group_name, "arm_group");
@@ -23,6 +23,22 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
 
   joint_names_ = ik_.getJointNames();
   goal_state_.resize(joint_names_.size());
+
+  std::string robot_description;
+  if(!nh.getParam("/robot_description", robot_description)) {
+    ROS_ERROR_STREAM("Failed to load /robot_description.");
+  }
+  // Loading urdf
+  if (!urdf_model_.initString(robot_description)) {
+    ROS_ERROR_STREAM("Failed to parse urdf.");
+  }
+  // Load gripper limits
+  urdf::JointConstSharedPtr gripper_joint = urdf_model_.getJoint(gripper_joint_name_);
+  if (!gripper_joint) {
+    ROS_ERROR_STREAM("Could not find gripper joint '" << gripper_joint_name_ << "'.");
+  }
+  gripper_upper_limit_ = gripper_joint->limits->upper;
+  gripper_lower_limit_ = gripper_joint->limits->lower;
 
   // Subscribers and publishers
   goal_pose_pub_ = pnh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
@@ -77,10 +93,12 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 
   // Update gripper position
   gripper_pos_ += period.toSec() * gripper_speed_;
+  gripper_pos_ = std::min(gripper_upper_limit_, std::max(gripper_lower_limit_, gripper_pos_));
+//  ROS_INFO_STREAM("[" << gripper_lower_limit_ << " < " << gripper_pos_ << " < " << gripper_upper_limit_ << "]");
 
   // Send new gripper command
   point.positions = std::vector<double>(1, gripper_pos_);
-  trajectory.joint_names = std::vector<std::string>(1, gripper_name_);
+  trajectory.joint_names = std::vector<std::string>(1, gripper_joint_name_);
   trajectory.points[0] = point;
 
   gripper_cmd_pub_.publish(trajectory);

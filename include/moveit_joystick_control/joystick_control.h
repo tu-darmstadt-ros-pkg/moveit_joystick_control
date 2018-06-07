@@ -6,6 +6,7 @@
 
 #include <moveit_joystick_control/controller_configuration.h>
 #include <moveit_joystick_control/inverse_kinematics.h>
+#include <urdf/model.h>
 
 namespace moveit_joystick_control {
 
@@ -41,12 +42,15 @@ private:
   double gripper_pos_;
   double gripper_speed_;
 
-  std::string gripper_name_;
+  std::string gripper_joint_name_;
   std::vector<std::string> joint_names_;
   bool joint_state_received_;
   sensor_msgs::JointState last_state_;
 
   InverseKinematics ik_;
+  urdf::Model urdf_model_;
+  double gripper_upper_limit_;
+  double gripper_lower_limit_;
 
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
