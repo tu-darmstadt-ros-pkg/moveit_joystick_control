@@ -58,7 +58,14 @@ void JoystickControl::starting()
   }
   goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
   ROS_INFO_STREAM("Joystick Control started.");
-  gripper_pos_ = 0.0;
+
+  std::vector<double> gripper_state = stateFromList(last_state_, std::vector<std::string>(1, gripper_joint_name_));
+  if (gripper_state.empty()) {
+    ROS_WARN_STREAM("Could not retrieve gripper position. Initializing with 0");
+    gripper_pos_ = 0;
+  } else {
+    gripper_pos_ = gripper_state[0];
+  }
   gripper_speed_ = 0.0;
 }
 
