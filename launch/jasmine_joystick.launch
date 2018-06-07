@@ -5,10 +5,13 @@
     <param name="control_rate" value="25"/>
     <param name="max_speed_linear" value="0.1"/>
     <param name="max_speed_angular" value="0.4"/>
+    <param name="max_speed_gripper" value="1"/>    
     <param name="group_name" value="arm_with_gripper_group"/>
+    <param name="gripper_name" value="gripper_servo_joint"/>
     <rosparam file="$(find moveit_joystick_control)/config/logitech_f310.yaml" command="load" />
    
     <remap from="/command" to="/manipulator_arm_control/manipulator_arm_traj_controller/command"/>
+    <remap from="/gripper_command" to="/manipulator_arm_control/gripper_traj_controller/command"/>
   </node>   
   
   <node pkg="joy" type="joy_node" name="joy" output="screen"/>

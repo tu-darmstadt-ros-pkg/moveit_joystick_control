@@ -7,5 +7,5 @@ controller_configuration:
   axis_angular_pitch: 4
   btn_angular_roll_inc: 0
   btn_angular_roll_dec: 1
-  btn_close_gripper: 5
-  btn_open_gripper: 4
+  btn_close_gripper: 2
+  btn_open_gripper: 3

@@ -6,11 +6,14 @@
 namespace moveit_joystick_control {
 
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
-  : nh_(nh), pnh_(pnh), joint_state_received_(false)
+  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0)
 {
   // Load parameters
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
   pnh.param("max_speed_angular", max_speed_angular_, 0.01);
+  pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
+
+  pnh.param<std::string>("gripper_name", gripper_name_, "gripper_servo_joint");
 
   std::string group_name;
   pnh.param<std::string>("group_name", group_name, "arm_group");
@@ -24,6 +27,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   // Subscribers and publishers
   goal_pose_pub_ = pnh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
   cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/command", 10);
+  gripper_cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/gripper_command", 10);
   joint_state_sub_ = nh_.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
   joy_sub_ = nh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
 }
@@ -38,17 +42,16 @@ void JoystickControl::starting()
   }
   goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
   ROS_INFO_STREAM("Joystick Control started.");
+  gripper_pos_ = 0.0;
+  gripper_speed_ = 0.0;
 }
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
   // Update endeffector pose with current command
-
   Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
   twist_transform.translation() = period.toSec() * twist_.linear;
-
   goal_pose_ = goal_pose_ * twist_transform;
-
 
   // Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
@@ -71,6 +74,16 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   trajectory.points.push_back(point);
 
   cmd_pub_.publish(trajectory);
+
+  // Update gripper position
+  gripper_pos_ += period.toSec() * gripper_speed_;
+
+  // Send new gripper command
+  point.positions = std::vector<double>(1, gripper_pos_);
+  trajectory.joint_names = std::vector<std::string>(1, gripper_name_);
+  trajectory.points[0] = point;
+
+  gripper_cmd_pub_.publish(trajectory);
 }
 
 void JoystickControl::stopping()
@@ -82,8 +95,9 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
   twist_ = joyToTwist(*joy_ptr);
-  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
-  ROS_INFO_STREAM("angular: [" << twist_.angular.x() << ", " << twist_.angular.y() << ", " << twist_.angular.z() << "]");
+  gripper_speed_ = max_speed_gripper_ * (joy_ptr->buttons[config_.btn_close_gripper] - joy_ptr->buttons[config_.btn_open_gripper]);
+//  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
+//  ROS_INFO_STREAM("angular: [" << twist_.angular.x() << ", " << twist_.angular.y() << ", " << twist_.angular.z() << "]");
 }
 
 void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg)

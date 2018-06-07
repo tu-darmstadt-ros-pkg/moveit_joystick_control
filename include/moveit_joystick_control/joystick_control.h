@@ -32,12 +32,16 @@ private:
   ControllerConfig config_;
   double max_speed_linear_;
   double max_speed_angular_;
+  double max_speed_gripper_;
 
   Eigen::Affine3d goal_pose_;
   std::vector<double> goal_state_;
 
   Twist twist_; // Current command
+  double gripper_pos_;
+  double gripper_speed_;
 
+  std::string gripper_name_;
   std::vector<std::string> joint_names_;
   bool joint_state_received_;
   sensor_msgs::JointState last_state_;
@@ -47,6 +51,7 @@ private:
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
   ros::Publisher cmd_pub_;
+  ros::Publisher gripper_cmd_pub_;
   ros::Publisher goal_pose_pub_;
 };
 
