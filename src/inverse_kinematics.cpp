@@ -7,6 +7,7 @@ namespace moveit_joystick_control {
 bool InverseKinematics::init(std::string group_name) {
   robot_model_loader_.reset(new robot_model_loader::RobotModelLoader());
   robot_model_ = robot_model_loader_->getModel();
+  planning_scene_.reset(new planning_scene::PlanningScene(robot_model_));
   robot_state_.reset(new robot_state::RobotState(robot_model_));
   robot_state_->setToDefaultValues();
 
@@ -101,6 +102,18 @@ Eigen::Affine3d InverseKinematics::getEndEffectorPose(const std::vector<double>&
   Eigen::Affine3d pose;
   tf::poseMsgToEigen(poses[0], pose);
   return pose;
+}
+
+bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution)
+{
+  robot_state_->setVariableValues(joint_state);
+  robot_state_->setJointGroupPositions(joint_model_group_, solution);
+  planning_scene_->setCurrentState(*robot_state_);
+
+  collision_detection::CollisionRequest req;
+  collision_detection::CollisionResult res;
+  planning_scene_->checkSelfCollision(req, res);
+  return !res.collision;
 }
 
 std::vector<std::string> InverseKinematics::getJointNames()

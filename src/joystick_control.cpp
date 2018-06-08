@@ -76,27 +76,30 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   twist_transform.translation() = period.toSec() * twist_.linear;
   goal_pose_ = goal_pose_ * twist_transform;
 
-  // Publish new goal pose
+  // Visualization: Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
   goal_pose_msg.header.frame_id = ik_.getBaseFrame();
-//  goal_pose_msg.header.stamp
   tf::poseEigenToMsg(goal_pose_, goal_pose_msg.pose);
   goal_pose_pub_.publish(goal_pose_msg);
 
   // Compute ik
-  if (!ik_.calcInvKin(goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
-    return;
+  if (ik_.calcInvKin(goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
+    // Check if solution is collision free
+    bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
+    if (!collision_free) {
+      ROS_WARN_STREAM("Solution is in collision.");
+    } else {
+      // Send new goal to trajectory controllers
+      trajectory_msgs::JointTrajectoryPoint point;
+      point.positions = goal_state_;
+      point.time_from_start = ros::Duration(0.100);
+      trajectory_msgs::JointTrajectory trajectory;
+      trajectory.joint_names = joint_names_;
+      trajectory.points.push_back(point);
+
+      cmd_pub_.publish(trajectory);
+    }
   }
-
-  // Send new goal to trajectory controllers
-  trajectory_msgs::JointTrajectoryPoint point;
-  point.positions = goal_state_;
-  point.time_from_start = ros::Duration(0.100);
-  trajectory_msgs::JointTrajectory trajectory;
-  trajectory.joint_names = joint_names_;
-  trajectory.points.push_back(point);
-
-  cmd_pub_.publish(trajectory);
 
   // Update gripper position
   gripper_pos_ += period.toSec() * gripper_speed_;
@@ -104,9 +107,11 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 //  ROS_INFO_STREAM("[" << gripper_lower_limit_ << " < " << gripper_pos_ << " < " << gripper_upper_limit_ << "]");
 
   // Send new gripper command
-  point.positions = std::vector<double>(1, gripper_pos_);
+  trajectory_msgs::JointTrajectoryPoint point;
+  point.positions = std::vector<double>(1, gripper_pos_);  point.time_from_start = ros::Duration(0.100);
+  trajectory_msgs::JointTrajectory trajectory;
   trajectory.joint_names = std::vector<std::string>(1, gripper_joint_name_);
-  trajectory.points[0] = point;
+  trajectory.points.push_back(point);
 
   gripper_cmd_pub_.publish(trajectory);
 }
