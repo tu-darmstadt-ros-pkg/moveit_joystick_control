@@ -71,6 +71,7 @@ void JoystickControl::starting()
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
+  Eigen::Affine3d old_goal_ = goal_pose_;
   // Update endeffector pose with current command
   Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
   twist_transform.translation() = period.toSec() * twist_.linear;
@@ -88,6 +89,7 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
     if (!collision_free) {
       ROS_WARN_STREAM("Solution is in collision.");
+      goal_pose_ = old_goal_;
     } else {
       // Send new goal to trajectory controllers
       trajectory_msgs::JointTrajectoryPoint point;
@@ -99,6 +101,8 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 
       cmd_pub_.publish(trajectory);
     }
+  } else {
+    goal_pose_ = old_goal_;
   }
 
   // Update gripper position
