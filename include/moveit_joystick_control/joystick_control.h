@@ -35,6 +35,8 @@ private:
   double max_speed_angular_;
   double max_speed_gripper_;
 
+  int free_angle_;
+
   Eigen::Affine3d goal_pose_;
   std::vector<double> goal_state_;
 
@@ -52,6 +54,7 @@ private:
   double gripper_upper_limit_;
   double gripper_lower_limit_;
 
+  ros::Subscriber enable_sub_;
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
   ros::Publisher cmd_pub_;

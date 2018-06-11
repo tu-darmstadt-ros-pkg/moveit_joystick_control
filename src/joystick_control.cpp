@@ -6,12 +6,26 @@
 namespace moveit_joystick_control {
 
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
-  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0)
+  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0), free_angle_(-1)
 {
   // Load parameters
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
   pnh.param("max_speed_angular", max_speed_angular_, 0.01);
   pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
+
+  std::string free_angle_str;
+  pnh.param<std::string>("free_angle", free_angle_str, "");
+  std::transform(free_angle_str.begin(), free_angle_str.end(), free_angle_str.begin(), ::tolower);
+  if (free_angle_str == "x") {
+    free_angle_ = 0;
+  } else if (free_angle_str == "y") {
+    free_angle_ = 1;
+  } else if (free_angle_str == "z") {
+    free_angle_ = 2;
+  } else {
+    free_angle_ = -1;
+    ROS_WARN_STREAM("Invalid free angle '" << free_angle_str << "'.");
+  }
 
   pnh.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
 
@@ -72,10 +86,21 @@ void JoystickControl::starting()
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
   Eigen::Affine3d old_goal_ = goal_pose_;
+
   // Update endeffector pose with current command
   Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
   twist_transform.translation() = period.toSec() * twist_.linear;
   goal_pose_ = goal_pose_ * twist_transform;
+
+  // Update free angles
+  if (free_angle_ != -1) {
+    Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+    Eigen::Affine3d goal_to_current = goal_pose_.inverse() * current_pose;
+    Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
+//    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
+
+    goal_pose_ = goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+  }
 
   // Visualization: Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
