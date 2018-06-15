@@ -36,7 +36,6 @@ include_directories(
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/joystick_control.h
   include/${PROJECT_NAME}/axis_mapper.h
-  include/${PROJECT_NAME}/controller_configuration.h
   include/${PROJECT_NAME}/inverse_kinematics.h
   include/${PROJECT_NAME}/common.h
 
