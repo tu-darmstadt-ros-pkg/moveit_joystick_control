@@ -7,7 +7,7 @@
     <param name="max_speed_angular" value="0.4"/>
     <param name="max_speed_gripper" value="1"/> 
 <!--     <param name="free_angle" value="Y"/> -->
-    <param name="group_name" value="arm_with_gripper_group_ceres"/>
+    <param name="group_name" value="arm_with_gripper_cam_group"/>
     <param name="gripper_joint_name" value="gripper_servo_joint"/>
     <rosparam file="$(find moveit_joystick_control)/config/logitech_f310.yaml" command="load" />
    

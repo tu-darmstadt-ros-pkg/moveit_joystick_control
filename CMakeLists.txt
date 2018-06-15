@@ -35,11 +35,13 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/joystick_control.h
+  include/${PROJECT_NAME}/axis_mapper.h
   include/${PROJECT_NAME}/controller_configuration.h
   include/${PROJECT_NAME}/inverse_kinematics.h
   include/${PROJECT_NAME}/common.h
 
   src/joystick_control.cpp
+  src/axis_mapper.cpp
   src/inverse_kinematics.cpp
   src/common.cpp
 )

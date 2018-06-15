@@ -32,8 +32,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   std::string group_name;
   pnh.param<std::string>("group_name", group_name, "arm_group");
   ik_.init(group_name);
-  ros::NodeHandle controller_config_nh(pnh, "controller_configuration");
-  config_ = ControllerConfig::createFromServer(controller_config_nh);
+  loadControllerConfig(pnh);
 
   joint_names_ = ik_.getJointNames();
   goal_state_.resize(joint_names_.size());
@@ -150,11 +149,30 @@ void JoystickControl::stopping()
   ROS_INFO_STREAM("Joystick Control stopped.");
 }
 
+void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
+{
+  ROS_INFO_STREAM("Loading controller config from namespace " << nh.getNamespace() + "/controller_configuration");
+  XmlRpc::XmlRpcValue mapping;
+  nh.getParam("controller_configuration", mapping);
+  ROS_ASSERT(mapping.getType() == XmlRpc::XmlRpcValue::TypeStruct);
+  for(XmlRpc::XmlRpcValue::ValueStruct::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
+  {
+    std::string action_name = (std::string)(it->first);
+    ros::NodeHandle action_nh(nh, "controller_configuration/" + action_name);
+    AxisMapper mapping = AxisMapper::createFromParameterServer(action_nh);
+    config_.emplace(action_name, mapping);
+    ROS_INFO_STREAM("Added action: " << action_name);
+  }
+  if (config_.empty()) {
+    ROS_WARN_STREAM("No controller configuration defined");
+  }
+}
+
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
   twist_ = joyToTwist(*joy_ptr);
-  gripper_speed_ = max_speed_gripper_ * (joy_ptr->buttons[config_.btn_close_gripper] - joy_ptr->buttons[config_.btn_open_gripper]);
+  gripper_speed_ = max_speed_gripper_ * config_["gripper"].computeCommand(*joy_ptr);
 //  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
 //  ROS_INFO_STREAM("angular: [" << twist_.angular.x() << ", " << twist_.angular.y() << ", " << twist_.angular.z() << "]");
 }
@@ -186,13 +204,13 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
 Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
 {
   Twist twist;
-  twist.linear.x() = max_speed_linear_ * -joy.axes[config_.axis_linear_x];
-  twist.linear.y() = max_speed_linear_ * joy.axes[config_.axis_linear_y];
-  twist.linear.z() = (max_speed_linear_ * (joy.buttons[config_.axis_linear_z_inc] - joy.buttons[config_.axis_linear_z_dec]));
+  twist.linear.x() = max_speed_linear_ * config_["translate_x"].computeCommand(joy);
+  twist.linear.y() = max_speed_linear_ * config_["translate_y"].computeCommand(joy);
+  twist.linear.z() = max_speed_linear_ * config_["translate_z"].computeCommand(joy);
 
-  twist.angular.x() = max_speed_angular_ * (joy.buttons[config_.btn_angular_roll_inc] - joy.buttons[config_.btn_angular_roll_dec]);
-  twist.angular.y() = max_speed_angular_ * joy.axes[config_.axis_angular_pitch];
-  twist.angular.z() = max_speed_angular_ * joy.axes[config_.axis_angular_yaw];
+  twist.angular.x() = max_speed_angular_ * config_["rotate_roll"].computeCommand(joy);
+  twist.angular.y() = max_speed_angular_ * config_["rotate_pitch"].computeCommand(joy);
+  twist.angular.z() = max_speed_angular_ * config_["rotate_yaw"].computeCommand(joy);
 
   return twist;
 }

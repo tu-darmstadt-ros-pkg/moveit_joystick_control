@@ -113,6 +113,14 @@ bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_sta
   collision_detection::CollisionRequest req;
   collision_detection::CollisionResult res;
   planning_scene_->checkSelfCollision(req, res);
+
+  if (res.collision) {
+    collision_detection::CollisionResult::ContactMap& contact_map = res.contacts;
+    for (auto it = contact_map.begin(); it != contact_map.end(); ++it) {
+      ROS_WARN_STREAM("Detected collision between '" << it->first.first << "' and '" << it->first.second << "'.");
+    }
+  }
+
   return !res.collision;
 }
 
