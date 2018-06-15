@@ -2,6 +2,7 @@
 <launch> 
   
   <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen">
+    <param name="enable" value="false"/>
     <param name="control_rate" value="25"/>
     <param name="max_speed_linear" value="0.1"/>
     <param name="max_speed_angular" value="0.4"/>

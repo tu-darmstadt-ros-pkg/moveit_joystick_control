@@ -33,6 +33,8 @@ private:
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
+  bool enabled_;
+
 //  ControllerConfig config_;
   std::map<std::string, AxisMapper> config_;
 

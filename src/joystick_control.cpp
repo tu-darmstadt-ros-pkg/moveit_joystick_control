@@ -6,7 +6,7 @@
 namespace moveit_joystick_control {
 
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
-  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0), free_angle_(-1)
+  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0), free_angle_(-1), enabled_(false)
 {
   // Load parameters
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
@@ -63,6 +63,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
 
 void JoystickControl::starting()
 {
+  if (enabled_) return;
   // Set initial endeffector pose
   ROS_INFO_STREAM("Waiting for joint states..");
   while (!joint_state_received_) {
@@ -82,17 +83,21 @@ void JoystickControl::starting()
     gripper_pos_ = gripper_state[0];
   }
   gripper_speed_ = 0.0;
+  enabled_ = true;
 }
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
+  if (!enabled_) return;
   updateArm(time, period);
   updateGripper(time, period);
 }
 
 void JoystickControl::stopping()
 {
+  if (!enabled_) return;
   ROS_INFO_STREAM("Joystick Control stopped.");
+  enabled_ = false;
 }
 
 void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& period)
