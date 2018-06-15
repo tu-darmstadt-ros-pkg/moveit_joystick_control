@@ -23,6 +23,8 @@ public:
   void update(const ros::Time& time, const ros::Duration& period);
   void stopping();
 private:
+  void updateArm(const ros::Time& time, const ros::Duration& period);
+  void updateGripper(const ros::Time& time, const ros::Duration& period);
   void loadControllerConfig(const ros::NodeHandle& nh);
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);

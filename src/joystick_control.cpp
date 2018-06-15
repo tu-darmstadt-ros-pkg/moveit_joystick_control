@@ -69,6 +69,8 @@ void JoystickControl::starting()
     ros::Duration(0.1).sleep();
     ros::spinOnce();
   }
+  twist_.linear = Eigen::Vector3d::Zero();
+  twist_.angular = Eigen::Vector3d::Zero();
   goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
   ROS_INFO_STREAM("Joystick Control started.");
 
@@ -84,6 +86,21 @@ void JoystickControl::starting()
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
+  updateArm(time, period);
+  updateGripper(time, period);
+}
+
+void JoystickControl::stopping()
+{
+  ROS_INFO_STREAM("Joystick Control stopped.");
+}
+
+void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& period)
+{
+  if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
+    return;
+  }
+
   Eigen::Affine3d old_goal_ = goal_pose_;
 
   // Update endeffector pose with current command
@@ -128,8 +145,13 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   } else {
     goal_pose_ = old_goal_;
   }
+}
 
-  // Update gripper position
+void JoystickControl::updateGripper(const ros::Time& time, const ros::Duration& period)
+{
+  if (gripper_speed_ == 0.0) {
+    return;
+  }
   gripper_pos_ += period.toSec() * gripper_speed_;
   gripper_pos_ = std::min(gripper_upper_limit_, std::max(gripper_lower_limit_, gripper_pos_));
 //  ROS_INFO_STREAM("[" << gripper_lower_limit_ << " < " << gripper_pos_ << " < " << gripper_upper_limit_ << "]");
@@ -142,11 +164,6 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   trajectory.points.push_back(point);
 
   gripper_cmd_pub_.publish(trajectory);
-}
-
-void JoystickControl::stopping()
-{
-  ROS_INFO_STREAM("Joystick Control stopped.");
 }
 
 void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
