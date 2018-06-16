@@ -16,6 +16,6 @@
     <remap from="/gripper_command" to="/manipulator_arm_control/gripper_traj_controller/command"/>
   </node>   
   
-<!--   <node pkg="joy" type="joy_node" name="joy" output="screen"/> -->
+  <node pkg="joy" type="joy_node" name="joy" output="screen"/>
 
 </launch>
