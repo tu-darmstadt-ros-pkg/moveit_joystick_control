@@ -111,6 +111,7 @@ bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_sta
   planning_scene_->setCurrentState(*robot_state_);
 
   collision_detection::CollisionRequest req;
+  req.contacts = true;
   collision_detection::CollisionResult res;
   planning_scene_->checkSelfCollision(req, res);
 

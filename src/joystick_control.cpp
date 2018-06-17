@@ -134,7 +134,7 @@ void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& peri
     // Check if solution is collision free
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
     if (!collision_free) {
-      ROS_WARN_STREAM("Solution is in collision.");
+//      ROS_WARN_STREAM("Solution is in collision.");
       goal_pose_ = old_goal_;
     } else {
       // Send new goal to trajectory controllers

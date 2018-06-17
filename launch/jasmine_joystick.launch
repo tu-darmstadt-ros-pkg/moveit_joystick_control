@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch> 
   
-  <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen">
+  <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen" respawn="true">
     <param name="enable" value="false"/>
     <param name="control_rate" value="25"/>
     <param name="max_speed_linear" value="0.1"/>
