@@ -201,7 +201,7 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
-  if (reset_button_idx_ >= 0 && reset_button_idx_ < joy_ptr->buttons.size()-1 && joy_ptr->buttons[reset_button_idx_]) {
+  if (reset_button_idx_ >= 0 && reset_button_idx_ < joy_ptr->buttons.size() && joy_ptr->buttons[reset_button_idx_]) {
     reset_pose_ = true;
   }
   twist_ = joyToTwist(*joy_ptr);
