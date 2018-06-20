@@ -104,13 +104,12 @@ void JoystickControl::stopping()
 
 void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& period)
 {
-  if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
-    return;
-  }
-
   Eigen::Affine3d old_goal_ = goal_pose_;
 
   if (!reset_pose_) {
+    if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
+      return;
+    }
     // Update endeffector pose with current command
     Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
     twist_transform.translation() = period.toSec() * twist_.linear;
