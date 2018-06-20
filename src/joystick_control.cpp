@@ -12,6 +12,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
   pnh.param("max_speed_angular", max_speed_angular_, 0.01);
   pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
+  pnh.param("reset_button_idx", reset_button_idx_, 0);
 
   std::string free_angle_str;
   pnh.param<std::string>("free_angle", free_angle_str, "");
@@ -73,6 +74,7 @@ void JoystickControl::starting()
   twist_.linear = Eigen::Vector3d::Zero();
   twist_.angular = Eigen::Vector3d::Zero();
   goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+  reset_pose_ = false;
   ROS_INFO_STREAM("Joystick Control started.");
 
   std::vector<double> gripper_state = stateFromList(last_state_, std::vector<std::string>(1, gripper_joint_name_));
@@ -108,20 +110,26 @@ void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& peri
 
   Eigen::Affine3d old_goal_ = goal_pose_;
 
-  // Update endeffector pose with current command
-  Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
-  twist_transform.translation() = period.toSec() * twist_.linear;
-  goal_pose_ = goal_pose_ * twist_transform;
+  if (!reset_pose_) {
+    // Update endeffector pose with current command
+    Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
+    twist_transform.translation() = period.toSec() * twist_.linear;
+    goal_pose_ = goal_pose_ * twist_transform;
 
-  // Update free angles
-  if (free_angle_ != -1) {
-    Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-    Eigen::Affine3d goal_to_current = goal_pose_.inverse() * current_pose;
-    Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
-//    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
+    // Update free angles
+    if (free_angle_ != -1) {
+      Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+      Eigen::Affine3d goal_to_current = goal_pose_.inverse() * current_pose;
+      Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
+  //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
 
-    goal_pose_ = goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+      goal_pose_ = goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+    }
+  } else {
+    goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+    reset_pose_ = false;
   }
+
 
   // Visualization: Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
@@ -193,6 +201,9 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
+  if (reset_button_idx_ >= 0 && reset_button_idx_ < joy_ptr->buttons.size()-1 && joy_ptr->buttons[reset_button_idx_]) {
+    reset_pose_ = true;
+  }
   twist_ = joyToTwist(*joy_ptr);
   gripper_speed_ = max_speed_gripper_ * config_["gripper"].computeCommand(*joy_ptr);
 //  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");

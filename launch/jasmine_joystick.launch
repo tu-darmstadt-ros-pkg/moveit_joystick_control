@@ -10,6 +10,7 @@
 <!--     <param name="free_angle" value="Y"/> -->
     <param name="group_name" value="arm_with_gripper_cam_group"/>
     <param name="gripper_joint_name" value="gripper_servo_joint"/>
+    <param name="reset_button_idx" value="6"/>
     <rosparam file="$(find moveit_joystick_control)/config/logitech_f310.yaml" command="load" />
    
     <remap from="/command" to="/manipulator_arm_control/manipulator_arm_traj_controller/command"/>

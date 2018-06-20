@@ -37,6 +37,8 @@ private:
 
 //  ControllerConfig config_;
   std::map<std::string, AxisMapper> config_;
+  int reset_button_idx_;
+  bool reset_pose_;
 
 
   double max_speed_linear_;
