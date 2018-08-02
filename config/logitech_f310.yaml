@@ -1,14 +1,4 @@
-#controller_configuration:
-  #axis_linear_z_inc: 4
-  #axis_linear_z_dec: 5
-  #axis_linear_y: 0
-  #axis_linear_x: 1
-  #axis_angular_yaw: 3
-  #axis_angular_pitch: 4
-  #btn_angular_roll_inc: 0
-  #btn_angular_roll_dec: 1
-  #btn_close_gripper: 2
-  #btn_open_gripper: 3
+reset_button_idx: 6
 controller_configuration:
   translate_x:
     scale: 0.5
