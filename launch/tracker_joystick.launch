@@ -17,7 +17,7 @@
     <rosparam file="$(find moveit_joystick_control)/config/logitech_f310.yaml" command="load" />
    
     <remap from="/command" to="/joint_trajectory_demux/command"/>
-    <remap from="/gripper_command" to="/manipulator_arm_control/gripper_traj_controller/command"/>
+    <remap from="/gripper_command" to="/gripper_control/gripper_traj_controller/command"/>
   </node>   
   
 <!--   <node pkg="joy" type="joy_node" name="joy" output="screen"/> -->
