@@ -147,7 +147,7 @@ void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& peri
       // Send new goal to trajectory controllers
       trajectory_msgs::JointTrajectoryPoint point;
       point.positions = goal_state_;
-      point.time_from_start = ros::Duration(0.100);
+      point.time_from_start = period;
       trajectory_msgs::JointTrajectory trajectory;
       trajectory.joint_names = joint_names_;
       trajectory.points.push_back(point);
