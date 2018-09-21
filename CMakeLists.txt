@@ -35,7 +35,10 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/joystick_control.h
-  include/${PROJECT_NAME}/axis_mapper.h
+  include/${PROJECT_NAME}/axis_mapping/axis_mapper_base.h
+  include/${PROJECT_NAME}/axis_mapping/direct_axis_mapper.h
+  include/${PROJECT_NAME}/axis_mapping/button_axis_mapper.h
+  include/${PROJECT_NAME}/axis_mapping/dual_axis_mapper.h
   include/${PROJECT_NAME}/inverse_kinematics.h
   include/${PROJECT_NAME}/common.h
 
