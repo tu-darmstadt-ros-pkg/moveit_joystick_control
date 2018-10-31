@@ -15,17 +15,18 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   pnh.param("reset_button_idx", reset_button_idx_, 0);
 
   std::string free_angle_str;
-  pnh.param<std::string>("free_angle", free_angle_str, "");
-  std::transform(free_angle_str.begin(), free_angle_str.end(), free_angle_str.begin(), ::tolower);
-  if (free_angle_str == "x") {
-    free_angle_ = 0;
-  } else if (free_angle_str == "y") {
-    free_angle_ = 1;
-  } else if (free_angle_str == "z") {
-    free_angle_ = 2;
-  } else {
-    free_angle_ = -1;
-    ROS_WARN_STREAM("Invalid free angle '" << free_angle_str << "'.");
+  if (pnh.getParam("free_angle", free_angle_str) && free_angle_str != "") {
+    std::transform(free_angle_str.begin(), free_angle_str.end(), free_angle_str.begin(), ::tolower);
+    if (free_angle_str == "x") {
+      free_angle_ = 0;
+    } else if (free_angle_str == "y") {
+      free_angle_ = 1;
+    } else if (free_angle_str == "z") {
+      free_angle_ = 2;
+    } else {
+      free_angle_ = -1;
+      ROS_WARN_STREAM("Invalid free angle '" << free_angle_str << "'.");
+    }
   }
 
   pnh.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
