@@ -12,7 +12,6 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
   pnh.param("max_speed_angular", max_speed_angular_, 0.01);
   pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
-  pnh.param("reset_button_idx", reset_button_idx_, 0);
 
   std::string free_angle_str;
   pnh.param<std::string>("free_angle", free_angle_str, "");
@@ -102,7 +101,7 @@ void JoystickControl::stopping()
   enabled_ = false;
 }
 
-void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& period)
+void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& period)
 {
   Eigen::Affine3d old_goal_ = goal_pose_;
 
@@ -159,7 +158,7 @@ void JoystickControl::updateArm(const ros::Time& time, const ros::Duration& peri
   }
 }
 
-void JoystickControl::updateGripper(const ros::Time& time, const ros::Duration& period)
+void JoystickControl::updateGripper(const ros::Time& /*time*/, const ros::Duration& period)
 {
   if (gripper_speed_ == 0.0) {
     return;
@@ -186,10 +185,10 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
   ROS_ASSERT(mapping.getType() == XmlRpc::XmlRpcValue::TypeStruct);
   for(XmlRpc::XmlRpcValue::ValueStruct::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
   {
-    std::string action_name = (std::string)(it->first);
+    std::string action_name = it->first;
     ros::NodeHandle action_nh(nh, "controller_configuration/" + action_name);
-    AxisMapper mapping = AxisMapper::createFromParameterServer(action_nh);
-    config_.emplace(action_name, mapping);
+    std::shared_ptr<ControllerMapperBase> controller_mapper = createControllerMapper(action_nh);
+    config_.emplace(action_name, controller_mapper);
     ROS_INFO_STREAM("Added action: " << action_name);
   }
   if (config_.empty()) {
@@ -200,11 +199,11 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
-  if (reset_button_idx_ >= 0 && reset_button_idx_ < joy_ptr->buttons.size() && joy_ptr->buttons[reset_button_idx_]) {
+  if (config_["reset"]->computeCommand(*joy_ptr) != 0.0) {
     reset_pose_ = true;
   }
   twist_ = joyToTwist(*joy_ptr);
-  gripper_speed_ = max_speed_gripper_ * config_["gripper"].computeCommand(*joy_ptr);
+  gripper_speed_ = max_speed_gripper_ * config_["gripper"]->computeCommand(*joy_ptr);
 //  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
 //  ROS_INFO_STREAM("angular: [" << twist_.angular.x() << ", " << twist_.angular.y() << ", " << twist_.angular.z() << "]");
 }
@@ -220,7 +219,7 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
       std::vector<std::string>::iterator it = std::find(last_state_.name.begin(), last_state_.name.end(), joint_name);
       if (it != last_state_.name.end()) {
         // we know this joint already, update position
-        unsigned int idx = it - last_state_.name.begin();
+        size_t idx = static_cast<size_t>(it - last_state_.name.begin()); // save as begin() is always <= it
         last_state_.position[idx] = joint_state_msg->position[joint_idx];
         last_state_.velocity[idx] = joint_state_msg->velocity[joint_idx];
       } else {
@@ -236,13 +235,13 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
 Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
 {
   Twist twist;
-  twist.linear.x() = max_speed_linear_ * config_["translate_x"].computeCommand(joy);
-  twist.linear.y() = max_speed_linear_ * config_["translate_y"].computeCommand(joy);
-  twist.linear.z() = max_speed_linear_ * config_["translate_z"].computeCommand(joy);
+  twist.linear.x() = max_speed_linear_ * config_["translate_x"]->computeCommand(joy);
+  twist.linear.y() = max_speed_linear_ * config_["translate_y"]->computeCommand(joy);
+  twist.linear.z() = max_speed_linear_ * config_["translate_z"]->computeCommand(joy);
 
-  twist.angular.x() = max_speed_angular_ * config_["rotate_roll"].computeCommand(joy);
-  twist.angular.y() = max_speed_angular_ * config_["rotate_pitch"].computeCommand(joy);
-  twist.angular.z() = max_speed_angular_ * config_["rotate_yaw"].computeCommand(joy);
+  twist.angular.x() = max_speed_angular_ * config_["rotate_roll"]->computeCommand(joy);
+  twist.angular.y() = max_speed_angular_ * config_["rotate_pitch"]->computeCommand(joy);
+  twist.angular.z() = max_speed_angular_ * config_["rotate_yaw"]->computeCommand(joy);
 
   return twist;
 }

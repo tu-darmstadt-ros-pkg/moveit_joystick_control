@@ -11,24 +11,41 @@
 namespace moveit_joystick_control {
 
 std::shared_ptr<ControllerMapperBase> switchController(const ros::NodeHandle& nh) {
+  // Simple axis mapping
   int axis_index;
   if (nh.getParam("axis_index", axis_index)) {
-    return std::make_shared<AxisMapper>(axis_index);
+    if (axis_index >= 0)  {
+      return std::make_shared<AxisMapper>(axis_index);
+    } else {
+      ROS_ERROR_STREAM("axis_index has to be non-negative.");
+    }
   }
-
+  // Simple button mapping
   int button_index;
   if (nh.getParam("button_index", button_index)) {
-    return std::make_shared<ButtonMapper>(button_index);
+    if (button_index >= 0) {
+      return std::make_shared<ButtonMapper>(button_index);
+    } else {
+      ROS_ERROR_STREAM("button_index has to be non-negative.");
+    }
   }
-
+  // Two buttons as one axis
   int button_inc_index, button_dec_index;
   if (nh.getParam("button_inc_index", button_inc_index) && nh.getParam("button_dec_index", button_dec_index)) {
-    return std::make_shared<ButtonAxisMapper>(button_inc_index, button_dec_index);
+    if (button_inc_index >= 0 && button_dec_index >= 0) {
+      return std::make_shared<ButtonAxisMapper>(button_inc_index, button_dec_index);
+    } else {
+      ROS_ERROR_STREAM("Button indices need to be non-negative.");
+    }
   }
-
+  // Two axis as one axis
   int axis_inc_index, axis_dec_index;
   if (nh.getParam("axis_inc_index", axis_inc_index) && nh.getParam("axis_dec_index", axis_dec_index)) {
-    return std::make_shared<DualAxisMapper>(axis_inc_index, axis_dec_index);
+    if (axis_inc_index >= 0 && axis_dec_index >= 0) {
+      return std::make_shared<DualAxisMapper>(axis_inc_index, axis_dec_index);
+    } else {
+      ROS_ERROR_STREAM("Axis indices need to be non-negative.");
+    }
   }
 
   ROS_ERROR_STREAM("None of the required parameters found to create a controller mapper.");

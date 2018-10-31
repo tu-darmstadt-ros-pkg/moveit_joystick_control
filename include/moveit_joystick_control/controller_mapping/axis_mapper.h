@@ -12,8 +12,6 @@ class AxisMapper : public ControllerMapperBase {
 public:
   AxisMapper(size_t axis_index);
   virtual double computeCommand(const sensor_msgs::Joy& joy) override;
-  virtual void initFromParameterServer(const ros::NodeHandle& nh) override;
-
 private:
   size_t axis_index_;
 };

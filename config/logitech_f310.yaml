@@ -1,5 +1,6 @@
-reset_button_idx: 6
 controller_configuration:
+  reset:
+    button_index: 6
   translate_x:
     scale: 0.5
     axis_inc_index: 5
