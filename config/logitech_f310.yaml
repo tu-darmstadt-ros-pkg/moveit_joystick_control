@@ -2,7 +2,6 @@ controller_configuration:
   reset:
     button_index: 6
   translate_x:
-    scale: 0.5
     axis_inc_index: 5
     axis_dec_index: 2 
   translate_y:
@@ -20,6 +19,6 @@ controller_configuration:
     button_inc_index: 1
     button_dec_index: 0
   gripper:
-    button_inc_index: 5
-    button_dec_index: 4
+    button_inc_index: 4
+    button_dec_index: 5
   
