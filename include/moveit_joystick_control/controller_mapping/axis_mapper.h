@@ -11,7 +11,7 @@ namespace moveit_joystick_control {
 class AxisMapper : public ControllerMapperBase {
 public:
   AxisMapper(size_t axis_index);
-  virtual double computeCommand(const sensor_msgs::Joy& joy) override;
+  virtual double computeCommand(const sensor_msgs::Joy& joy) const override;
 private:
   size_t axis_index_;
 };

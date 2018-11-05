@@ -200,7 +200,7 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   // Update command
-  if (config_["reset"]->computeCommand(*joy_ptr) != 0.0) {
+  if (config_["reset"]->isPressed(*joy_ptr)) {
     reset_pose_ = true;
   }
   twist_ = joyToTwist(*joy_ptr);

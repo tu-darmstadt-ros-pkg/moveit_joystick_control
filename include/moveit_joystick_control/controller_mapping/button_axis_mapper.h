@@ -11,7 +11,7 @@ namespace moveit_joystick_control {
 class ButtonAxisMapper : public ControllerMapperBase {
 public:
   ButtonAxisMapper(size_t button_inc_index, size_t button_dec_index);
-  double computeCommand(const sensor_msgs::Joy& joy);
+  double computeCommand(const sensor_msgs::Joy& joy) const override;
 
 private:
   size_t button_inc_index_;

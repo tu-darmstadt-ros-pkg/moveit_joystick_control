@@ -6,7 +6,7 @@ AxisMapper::AxisMapper(size_t axis_index)
   : ControllerMapperBase(), axis_index_(axis_index)
 {}
 
-double AxisMapper::computeCommand(const sensor_msgs::Joy& joy)
+double AxisMapper::computeCommand(const sensor_msgs::Joy& joy) const
 {
   if (axis_index_ < joy.axes.size()) {
     return scale() * static_cast<double>(joy.axes[axis_index_]);

@@ -6,7 +6,7 @@ ButtonAxisMapper::ButtonAxisMapper(size_t button_inc_index, size_t button_dec_in
   : button_inc_index_(button_inc_index), button_dec_index_(button_dec_index)
 {}
 
-double ButtonAxisMapper::computeCommand(const sensor_msgs::Joy& joy)
+double ButtonAxisMapper::computeCommand(const sensor_msgs::Joy& joy) const
 {
   if (button_inc_index_ >= joy.buttons.size()) {
     ROS_ERROR_STREAM("Button index " << button_inc_index_ << " is out of bounds (Size: " << joy.buttons.size() << ").");

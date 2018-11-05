@@ -6,7 +6,7 @@ ButtonMapper::ButtonMapper(size_t button_index)
   : ControllerMapperBase(), button_index_(button_index)
 {}
 
-double ButtonMapper::computeCommand(const sensor_msgs::Joy& joy)
+double ButtonMapper::computeCommand(const sensor_msgs::Joy& joy) const
 {
   if (button_index_ < joy.buttons.size()) {
     return static_cast<double>(joy.buttons[button_index_]);
