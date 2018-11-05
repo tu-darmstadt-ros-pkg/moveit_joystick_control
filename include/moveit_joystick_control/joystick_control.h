@@ -5,7 +5,7 @@
 #include <Eigen/Eigen>
 
 #include <moveit_joystick_control/inverse_kinematics.h>
-#include <moveit_joystick_control/axis_mapper.h>
+#include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
 #include <urdf/model.h>
 
 namespace moveit_joystick_control {
@@ -36,8 +36,7 @@ private:
   bool enabled_;
 
 //  ControllerConfig config_;
-  std::map<std::string, AxisMapper> config_;
-  int reset_button_idx_;
+  std::map<std::string, std::shared_ptr<ControllerMapperBase>> config_;
   bool reset_pose_;
 
 

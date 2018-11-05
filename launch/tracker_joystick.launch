@@ -5,7 +5,7 @@
     <rosparam file="$(find argo_tracker_robot_moveit_config)/config/controllers.yaml" command="load" />
   </node>
   
-  <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen" respawn="true">
+  <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen" respawn="true" clear_params="true">
     <param name="enable" value="true"/>
     <param name="control_rate" value="25"/>
     <param name="max_speed_linear" value="0.1"/>
