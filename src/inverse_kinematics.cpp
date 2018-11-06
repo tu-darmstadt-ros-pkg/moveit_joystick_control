@@ -58,7 +58,7 @@ bool InverseKinematics::calcInvKin(const Eigen::Affine3d &pose, const std::vecto
       return false;
   }
 
-  double limit = 10 * M_PI / 180;
+//  double limit = 10 * M_PI / 180;
 
 //  // find maximum position change
 //  double min_change_factor = 1;

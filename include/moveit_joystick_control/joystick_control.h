@@ -38,6 +38,9 @@ private:
 //  ControllerConfig config_;
   std::map<std::string, std::shared_ptr<ControllerMapperBase>> config_;
   bool reset_pose_;
+  bool reset_tool_center_;
+
+  bool move_tool_center_;
 
 
   double max_speed_linear_;
@@ -46,10 +49,12 @@ private:
 
   int free_angle_;
 
-  Eigen::Affine3d goal_pose_;
+  Eigen::Affine3d tool_center_offset_; // Offset relative to end-effector
+  Eigen::Affine3d tool_goal_pose_; // Goal pose of tool
+  Eigen::Affine3d ee_goal_pose_; // Goal pose of the end-effector
   std::vector<double> goal_state_;
 
-  Twist twist_; // Current command
+  Twist twist_; // Current command, transform relative to tool center
   double gripper_pos_;
   double gripper_speed_;
 

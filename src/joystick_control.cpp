@@ -73,8 +73,11 @@ void JoystickControl::starting()
   }
   twist_.linear = Eigen::Vector3d::Zero();
   twist_.angular = Eigen::Vector3d::Zero();
-  goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+  ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+  tool_center_offset_ = Eigen::Affine3d::Identity();
   reset_pose_ = false;
+  reset_tool_center_ = false;
+  move_tool_center_ = false;
   ROS_INFO_STREAM("Joystick Control started.");
 
   std::vector<double> gripper_state = stateFromList(last_state_, std::vector<std::string>(1, gripper_joint_name_));
@@ -104,7 +107,7 @@ void JoystickControl::stopping()
 
 void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& period)
 {
-  Eigen::Affine3d old_goal_ = goal_pose_;
+  Eigen::Affine3d old_goal_ = ee_goal_pose_;
 
   if (!reset_pose_) {
     if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
@@ -113,36 +116,41 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     // Update endeffector pose with current command
     Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
     twist_transform.translation() = period.toSec() * twist_.linear;
-    goal_pose_ = goal_pose_ * twist_transform;
+
+    if (!move_tool_center_) {
+      tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_ * twist_transform;
+      ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse();
+    } else {
+      tool_center_offset_ = tool_center_offset_ * twist_transform;
+    }
 
     // Update free angles
     if (free_angle_ != -1) {
       Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-      Eigen::Affine3d goal_to_current = goal_pose_.inverse() * current_pose;
+      Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse() * current_pose;
       Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
   //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
 
-      goal_pose_ = goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+      ee_goal_pose_ = ee_goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
     }
   } else {
-    goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+    ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
     reset_pose_ = false;
   }
-
 
   // Visualization: Publish new goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
   goal_pose_msg.header.frame_id = ik_.getBaseFrame();
-  tf::poseEigenToMsg(goal_pose_, goal_pose_msg.pose);
+  tf::poseEigenToMsg(tool_goal_pose_, goal_pose_msg.pose);
   goal_pose_pub_.publish(goal_pose_msg);
 
   // Compute ik
-  if (ik_.calcInvKin(goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
+  if (ik_.calcInvKin(ee_goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
     // Check if solution is collision free
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
     if (!collision_free) {
 //      ROS_WARN_STREAM("Solution is in collision.");
-      goal_pose_ = old_goal_;
+      ee_goal_pose_ = old_goal_;
     } else {
       // Send new goal to trajectory controllers
       trajectory_msgs::JointTrajectoryPoint point;
@@ -155,7 +163,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
       cmd_pub_.publish(trajectory);
     }
   } else {
-    goal_pose_ = old_goal_;
+    ee_goal_pose_ = old_goal_;
   }
 }
 
@@ -203,6 +211,10 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
   if (config_["reset"]->isPressed(*joy_ptr)) {
     reset_pose_ = true;
   }
+  if (config_["reset_tool_center"]->isPressed(*joy_ptr)) {
+    reset_tool_center_ = true;
+  }
+  move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
   twist_ = joyToTwist(*joy_ptr);
   gripper_speed_ = max_speed_gripper_ * config_["gripper"]->computeCommand(*joy_ptr);
 //  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
