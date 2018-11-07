@@ -110,30 +110,41 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
   Eigen::Affine3d old_goal_ = ee_goal_pose_;
 
   if (!reset_pose_) {
-    if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
-      return;
-    }
-    // Update endeffector pose with current command
-    Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
-    twist_transform.translation() = period.toSec() * twist_.linear;
+    if (!reset_tool_center_) {
+      if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
+        return;
+      }
+      // Update endeffector pose with current command
+      Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
+      twist_transform.translation() = period.toSec() * twist_.linear;
 
-    if (!move_tool_center_) {
-      tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_ * twist_transform;
-      ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse();
+      Eigen::Affine3d tool_center_movement = tool_center_offset_ * twist_transform;
+      tool_goal_pose_ = ee_goal_pose_ * tool_center_movement;
+      if (!move_tool_center_) {
+        // Move end-effector
+        ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse();
+      } else {
+        // Move tool frame
+        tool_center_offset_ = tool_center_movement;
+      }
+
+      // Update free angles
+      if (free_angle_ != -1) {
+        Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+        Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse() * current_pose;
+        Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
+    //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
+
+        ee_goal_pose_ = ee_goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+      }
     } else {
-      tool_center_offset_ = tool_center_offset_ * twist_transform;
-    }
-
-    // Update free angles
-    if (free_angle_ != -1) {
-      Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-      Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse() * current_pose;
-      Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
-  //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
-
-      ee_goal_pose_ = ee_goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+      // Reset tool center to end-effector goal
+      tool_center_offset_ = Eigen::Affine3d::Identity();
+      tool_goal_pose_ = ee_goal_pose_;
+      reset_tool_center_ = false;
     }
   } else {
+    // Reset end-effector goal
     ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
     reset_pose_ = false;
   }

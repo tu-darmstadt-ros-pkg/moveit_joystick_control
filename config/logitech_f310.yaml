@@ -19,6 +19,10 @@ controller_configuration:
     button_inc_index: 1
     button_dec_index: 0
   gripper:
-    button_inc_index: 4
-    button_dec_index: 5
+    button_inc_index: 2
+    button_dec_index: 3
+  move_tool_center:
+    button_index: 5
+  reset_tool_center: 
+    button_index: 7
   
