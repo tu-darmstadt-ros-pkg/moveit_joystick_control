@@ -16,4 +16,5 @@
   <depend>sensor_msgs</depend>
   <depend>kdl_parser</depend>
   <depend>urdf</depend>
+  <depend>eigen_conversions</depend>
 </package>
