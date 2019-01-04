@@ -18,6 +18,7 @@ controller_configuration:
   rotate_yaw:
     button_inc_index: 1
     button_dec_index: 0
+    scale: 0.3
   gripper:
     button_inc_index: 2
     button_dec_index: 3
