@@ -25,5 +25,5 @@ controller_configuration:
   move_tool_center:
     button_index: 5
   reset_tool_center: 
-    button_index: 7
+    button_index: 4
   
