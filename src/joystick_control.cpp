@@ -123,7 +123,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
       tool_goal_pose_ = ee_goal_pose_ * tool_center_movement;
       if (!move_tool_center_) {
         // Move end-effector
-        ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse();
+        ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse(Eigen::Isometry);
       } else {
         // Move tool frame
         tool_center_offset_ = tool_center_movement;
@@ -132,7 +132,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
       // Update free angles
       if (free_angle_ != -1) {
         Eigen::Affine3d current_pose = ik_.getEndEffectorPose(current_joint_angles);
-        Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse() * current_pose;
+        Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse(Eigen::Isometry) * current_pose;
         Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
     //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
 
