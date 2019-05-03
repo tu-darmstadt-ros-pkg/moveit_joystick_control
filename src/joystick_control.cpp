@@ -3,10 +3,20 @@
 #include <moveit_joystick_control/common.h>
 #include <eigen_conversions/eigen_msg.h>
 
+#include <moveit_msgs/DisplayRobotState.h>
+#include <moveit/robot_state/conversions.h>
+
 namespace moveit_joystick_control {
 
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
-  : nh_(nh), pnh_(pnh), joint_state_received_(false), gripper_pos_(0.0), gripper_speed_(0.0), free_angle_(-1), enabled_(false)
+  : nh_(nh),
+    pnh_(pnh),
+    joint_state_received_(false),
+    gripper_pos_(0.0),
+    gripper_speed_(0.0),
+    free_angle_(-1),
+    enabled_(false),
+    tf_listener_(tf_buffer_)
 {
   // Load parameters
   pnh.param("max_speed_linear", max_speed_linear_, 0.05);
@@ -56,8 +66,10 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
 
   // Subscribers and publishers
   goal_pose_pub_ = pnh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
+  robot_state_pub_ = pnh_.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
   cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/command", 10);
   gripper_cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/gripper_command", 10);
+
   joint_state_sub_ = nh_.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
   joy_sub_ = nh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
 }
@@ -159,7 +171,8 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
   // Compute ik
   if (ik_.calcInvKin(ee_goal_pose_, current_joint_angles, goal_state_)) {
     // Check if solution is collision free
-    bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
+    collision_detection::CollisionResult::ContactMap contact_map;
+    bool collision_free = ik_.isCollisionFree(last_state_, goal_state_, contact_map);
     if (!collision_free) {
 //      ROS_WARN_STREAM("Solution is in collision.");
       ee_goal_pose_ = old_goal_;
@@ -174,6 +187,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
 
       cmd_pub_.publish(trajectory);
     }
+    publishRobotState(goal_state_, contact_map);
   } else {
     ee_goal_pose_ = old_goal_;
   }
@@ -269,6 +283,44 @@ Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
   twist.angular.z() = max_speed_angular_ * config_["rotate_yaw"]->computeCommand(joy);
 
   return twist;
+}
+
+void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map)
+{
+  robot_state::RobotState robot_state = ik_.getAsRobotState(last_state_, arm_joint_states);
+
+  geometry_msgs::TransformStamped transform_stamped;
+  try{
+    transform_stamped = tf_buffer_.lookupTransform("world", "base_link", ros::Time(0));
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN("%s",ex.what());
+    return;
+  }
+  Eigen::Affine3d pose;
+  tf::transformMsgToEigen(transform_stamped.transform, pose);
+  updateRobotStatePose(robot_state, pose);
+
+
+  moveit_msgs::DisplayRobotState display_robot_state;
+  moveit::core::robotStateToRobotStateMsg(robot_state, display_robot_state.state);
+
+  std_msgs::ColorRGBA color;
+  color.a = 1.0;
+  color.r = 1.0;
+  color.b = color.g = 0.0;
+
+  for (auto it = contact_map.begin(); it != contact_map.end(); ++it) {
+//    ROS_WARN_STREAM("Detected collision between '" << it->first.first << "' and '" << it->first.second << "'.");
+    moveit_msgs::ObjectColor object_color;
+    object_color.id = it->first.first;
+    object_color.color = color;
+    display_robot_state.highlight_links.push_back(object_color);
+    object_color.id = it->first.second;
+    display_robot_state.highlight_links.push_back(object_color);
+  }
+
+  robot_state_pub_.publish(display_robot_state);
 }
 
 }

@@ -104,7 +104,7 @@ Eigen::Affine3d InverseKinematics::getEndEffectorPose(const std::vector<double>&
   return pose;
 }
 
-bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution)
+bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution, collision_detection::CollisionResult::ContactMap& contact_map)
 {
   robot_state_->setVariableValues(joint_state);
   robot_state_->setJointGroupPositions(joint_model_group_, solution);
@@ -116,13 +116,20 @@ bool InverseKinematics::isCollisionFree(const sensor_msgs::JointState& joint_sta
   planning_scene_->checkSelfCollision(req, res);
 
   if (res.collision) {
-    collision_detection::CollisionResult::ContactMap& contact_map = res.contacts;
+    contact_map = res.contacts;
     for (auto it = contact_map.begin(); it != contact_map.end(); ++it) {
       ROS_WARN_STREAM("Detected collision between '" << it->first.first << "' and '" << it->first.second << "'.");
     }
   }
 
   return !res.collision;
+}
+
+robot_state::RobotState InverseKinematics::getAsRobotState(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution)
+{
+  robot_state_->setVariableValues(joint_state);
+  robot_state_->setJointGroupPositions(joint_model_group_, solution);
+  return *robot_state_;
 }
 
 std::vector<std::string> InverseKinematics::getJointNames()

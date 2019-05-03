@@ -12,6 +12,8 @@ find_package(catkin REQUIRED COMPONENTS
   kdl_parser
   urdf
   eigen_conversions
+  moveit_msgs
+  tf2_ros
 )
 
 ###################################
@@ -20,7 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES moveit_joystick_control
-  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions
+  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions moveit_msgs tf2_ros
 #  DEPENDS system_lib
 )
 

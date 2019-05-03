@@ -8,6 +8,8 @@
 #include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
 #include <urdf/model.h>
 
+#include <tf2_ros/transform_listener.h>
+
 namespace moveit_joystick_control {
 
 struct Twist {
@@ -29,6 +31,7 @@ private:
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   Twist joyToTwist(const sensor_msgs::Joy& joy);
+  void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map);
 
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
@@ -74,6 +77,10 @@ private:
   ros::Publisher cmd_pub_;
   ros::Publisher gripper_cmd_pub_;
   ros::Publisher goal_pose_pub_;
+  ros::Publisher robot_state_pub_;
+
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
 };
 
 }

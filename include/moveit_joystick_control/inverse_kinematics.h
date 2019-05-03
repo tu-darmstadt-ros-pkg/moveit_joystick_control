@@ -18,7 +18,8 @@ public:
   bool calcInvKin(const Eigen::Affine3d &pose, const std::vector<double>& seed, std::vector<double> &solution);
   Eigen::Affine3d getEndEffectorPose(const std::vector<double>& joint_positions);
 
-  bool isCollisionFree(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution);
+  bool isCollisionFree(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution, collision_detection::CollisionResult::ContactMap& contact_map);
+  robot_state::RobotState getAsRobotState(const sensor_msgs::JointState& joint_state, const std::vector<double>& solution);
 
   std::vector<std::string> getJointNames();
   std::string getBaseFrame();
