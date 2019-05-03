@@ -109,6 +109,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
 {
   Eigen::Affine3d old_goal_ = ee_goal_pose_;
 
+  std::vector<double> current_joint_angles = stateFromList(last_state_, joint_names_);
   if (!reset_pose_) {
     if (!reset_tool_center_) {
       if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
@@ -130,7 +131,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
 
       // Update free angles
       if (free_angle_ != -1) {
-        Eigen::Affine3d current_pose = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+        Eigen::Affine3d current_pose = ik_.getEndEffectorPose(current_joint_angles);
         Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse() * current_pose;
         Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
     //    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
@@ -145,7 +146,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     }
   } else {
     // Reset end-effector goal
-    ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+    ee_goal_pose_ = ik_.getEndEffectorPose(current_joint_angles);
     reset_pose_ = false;
   }
 
@@ -156,7 +157,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
   goal_pose_pub_.publish(goal_pose_msg);
 
   // Compute ik
-  if (ik_.calcInvKin(ee_goal_pose_, stateFromList(last_state_, joint_names_), goal_state_)) {
+  if (ik_.calcInvKin(ee_goal_pose_, current_joint_angles, goal_state_)) {
     // Check if solution is collision free
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_);
     if (!collision_free) {
