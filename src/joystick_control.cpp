@@ -258,7 +258,7 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
       std::vector<std::string>::iterator it = std::find(last_state_.name.begin(), last_state_.name.end(), joint_name);
       if (it != last_state_.name.end()) {
         // we know this joint already, update position
-        size_t idx = static_cast<size_t>(it - last_state_.name.begin()); // save as begin() is always <= it
+        size_t idx = static_cast<size_t>(it - last_state_.name.begin()); // save, because begin() is always <= it
         last_state_.position[idx] = joint_state_msg->position[joint_idx];
         last_state_.velocity[idx] = joint_state_msg->velocity[joint_idx];
       } else {
@@ -287,8 +287,10 @@ Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
 
 void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map)
 {
+  // Get robot state with current positions + IK solutionn
   robot_state::RobotState robot_state = ik_.getAsRobotState(last_state_, arm_joint_states);
 
+  // Add world pose of robot
   geometry_msgs::TransformStamped transform_stamped;
   try{
     transform_stamped = tf_buffer_.lookupTransform("world", "base_link", ros::Time(0));
@@ -301,22 +303,22 @@ void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_sta
   tf::transformMsgToEigen(transform_stamped.transform, pose);
   updateRobotStatePose(robot_state, pose);
 
-
+  // Convert to msg
   moveit_msgs::DisplayRobotState display_robot_state;
   moveit::core::robotStateToRobotStateMsg(robot_state, display_robot_state.state);
 
+  // Highlight links in collision
   std_msgs::ColorRGBA color;
-  color.a = 1.0;
-  color.r = 1.0;
+  color.a = color.r = 1.0;
   color.b = color.g = 0.0;
-
   for (auto it = contact_map.begin(); it != contact_map.end(); ++it) {
-//    ROS_WARN_STREAM("Detected collision between '" << it->first.first << "' and '" << it->first.second << "'.");
+    const std::string& link1 = it->first.first;
+    const std::string& link2 = it->first.second;
     moveit_msgs::ObjectColor object_color;
-    object_color.id = it->first.first;
+    object_color.id = link1;
     object_color.color = color;
     display_robot_state.highlight_links.push_back(object_color);
-    object_color.id = it->first.second;
+    object_color.id = link2;
     display_robot_state.highlight_links.push_back(object_color);
   }
 
