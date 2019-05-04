@@ -108,6 +108,15 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   if (!enabled_) return;
   updateArm(time, period);
   updateGripper(time, period);
+
+  // Publish robot state display
+  publishRobotState(goal_state_, contact_map_);
+
+  // Visualization: Publish new goal pose
+  geometry_msgs::PoseStamped goal_pose_msg;
+  goal_pose_msg.header.frame_id = ik_.getBaseFrame();
+  tf::poseEigenToMsg(tool_goal_pose_, goal_pose_msg.pose);
+  goal_pose_pub_.publish(goal_pose_msg);
 }
 
 void JoystickControl::stopping()
@@ -162,17 +171,11 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     reset_pose_ = false;
   }
 
-  // Visualization: Publish new goal pose
-  geometry_msgs::PoseStamped goal_pose_msg;
-  goal_pose_msg.header.frame_id = ik_.getBaseFrame();
-  tf::poseEigenToMsg(tool_goal_pose_, goal_pose_msg.pose);
-  goal_pose_pub_.publish(goal_pose_msg);
-
   // Compute ik
   if (ik_.calcInvKin(ee_goal_pose_, current_joint_angles, goal_state_)) {
     // Check if solution is collision free
-    collision_detection::CollisionResult::ContactMap contact_map;
-    bool collision_free = ik_.isCollisionFree(last_state_, goal_state_, contact_map);
+    contact_map_.clear();
+    bool collision_free = ik_.isCollisionFree(last_state_, goal_state_, contact_map_);
     if (!collision_free) {
 //      ROS_WARN_STREAM("Solution is in collision.");
       ee_goal_pose_ = old_goal_;
@@ -187,7 +190,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
 
       cmd_pub_.publish(trajectory);
     }
-    publishRobotState(goal_state_, contact_map);
+
   } else {
     ee_goal_pose_ = old_goal_;
   }

@@ -31,7 +31,7 @@ private:
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   Twist joyToTwist(const sensor_msgs::Joy& joy);
-  void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map);
+  void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
 
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
@@ -56,6 +56,8 @@ private:
   Eigen::Affine3d tool_goal_pose_; // Goal pose of tool
   Eigen::Affine3d ee_goal_pose_; // Goal pose of the end-effector
   std::vector<double> goal_state_;
+
+  collision_detection::CollisionResult::ContactMap contact_map_;
 
   Twist twist_; // Current command, transform relative to tool center
   double gripper_pos_;
