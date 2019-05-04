@@ -1,5 +1,7 @@
 <?xml version="1.0"?>
-<launch> 
+<launch>
+  <arg name="robot_description_manipulation" default="$(find xacro)/xacro --inorder $(find hector_tracked_vehicles_description)/urdf/jasmine_2018_ugv.urdf.xacro add_manipulation_geom:=true"/>  
+  <param name="robot_description_manipulation" command="$(arg robot_description_manipulation)" /> 
   
   <node pkg="moveit_joystick_control" type="joystick_control_node" name="manipulator_arm_joystick_control" output="screen" respawn="true" clear_params="true">
     <param name="enable" value="false"/>
@@ -14,6 +16,8 @@
    
     <remap from="/command" to="/manipulator_arm_control/manipulator_arm_traj_controller/command"/>
     <remap from="/gripper_command" to="/manipulator_arm_control/gripper_traj_controller/command"/>
+    <remap from="/robot_description" to="/robot_description_manipulation"/>
+    <remap from="/robot_description_manipulation_semantic" to="/robot_description_semantic"/>
   </node>   
   
 <!--   <node pkg="joy" type="joy_node" name="joy" output="screen"/> -->
