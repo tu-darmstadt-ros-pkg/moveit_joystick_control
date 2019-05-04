@@ -61,7 +61,9 @@ int main(int argc, char** argv) {
       control.stopping();
       stop_controller_ = false;
     }
-    rate.sleep();
+    if (!rate.sleep()) {
+      ROS_WARN_STREAM("Desired control rate of " << control_rate << " hz was not met in this cycle. Current: " << 1.0/rate.cycleTime().toSec() << " hz");
+    }
   }
   return 0;
 }
