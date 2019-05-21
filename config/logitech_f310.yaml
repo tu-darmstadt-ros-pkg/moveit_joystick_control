@@ -25,4 +25,6 @@ controller_configuration:
     button_index: 5
   reset_tool_center: 
     button_index: 4
+  hold_pose:
+    axis_index: 7
   

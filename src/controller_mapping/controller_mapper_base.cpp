@@ -7,7 +7,7 @@ ControllerMapperBase::~ControllerMapperBase() {}
 bool ControllerMapperBase::isPressed(const sensor_msgs::Joy& joy) const
 {
   double cmd = computeCommand(joy);
-  return (cmd != 0.0);
+  return (cmd > 0.0);
 }
 
 double ControllerMapperBase::scale() const {
