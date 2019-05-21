@@ -11,11 +11,11 @@ namespace moveit_joystick_control {
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
   : nh_(nh),
     pnh_(pnh),
-    joint_state_received_(false),
+    enabled_(false),
+    free_angle_(-1),
     gripper_pos_(0.0),
     gripper_speed_(0.0),
-    free_angle_(-1),
-    enabled_(false),
+    joint_state_received_(false),
     tf_listener_(tf_buffer_)
 {
   // Load parameters
