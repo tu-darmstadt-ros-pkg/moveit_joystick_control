@@ -40,6 +40,7 @@ int main(int argc, char** argv) {
   ros::Rate rate(control_rate);
 
   moveit_joystick_control::JoystickControl control(nh, pnh);
+  control.init();
   ros::Time time = ros::Time::now();
   while (ros::ok()) {
     ros::spinOnce();

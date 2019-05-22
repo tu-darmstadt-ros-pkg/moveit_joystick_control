@@ -13,6 +13,7 @@
 namespace moveit_joystick_control {
 
 struct Twist {
+  Twist() : linear(Eigen::Vector3d::Zero()), angular(Eigen::Vector3d::Zero()) {}
   Eigen::Vector3d linear;
   Eigen::Vector3d angular;
 };
@@ -20,6 +21,8 @@ struct Twist {
 class JoystickControl {
 public:
   JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh);
+
+  void init();
 
   void starting();
   void update(const ros::Time& time, const ros::Duration& period);
@@ -51,7 +54,6 @@ private:
   bool reset_tool_center_;
 
   bool move_tool_center_;
-
 
   double max_speed_linear_;
   double max_speed_angular_;

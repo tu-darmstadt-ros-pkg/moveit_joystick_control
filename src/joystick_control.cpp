@@ -13,6 +13,9 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
     pnh_(pnh),
     initialized_(false),
     enabled_(false),
+    reset_pose_(false),
+    reset_tool_center_(false),
+    move_tool_center_(false),
     free_angle_(-1),
     tool_center_offset_(Eigen::Affine3d::Identity()),
     gripper_pos_(0.0),
@@ -79,25 +82,14 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
   joy_sub_ = nh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
 }
 
-void JoystickControl::starting()
+void JoystickControl::init()
 {
-  if (enabled_) return;
-  // Set initial endeffector pose
   ROS_INFO_STREAM("Waiting for joint states..");
   while (!joint_state_received_) {
     ros::Duration(0.1).sleep();
     ros::spinOnce();
   }
-  twist_.linear = Eigen::Vector3d::Zero();
-  twist_.angular = Eigen::Vector3d::Zero();
-//  ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-//  tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
   reset_pose_ = true;
-  reset_tool_center_ = false;
-  move_tool_center_ = false;
-  hold_pose_ = false;
-  hold_pose_pressed_ = false;
-  ROS_INFO_STREAM("Joystick Control started.");
 
   std::vector<double> gripper_state = stateFromList(last_state_, std::vector<std::string>(1, gripper_joint_name_));
   if (gripper_state.empty()) {
@@ -106,8 +98,24 @@ void JoystickControl::starting()
   } else {
     gripper_pos_ = gripper_state[0];
   }
-  gripper_speed_ = 0.0;
   initialized_ = true;
+}
+
+void JoystickControl::starting()
+{
+  if (enabled_) return;
+
+  twist_.linear = Eigen::Vector3d::Zero();
+  twist_.angular = Eigen::Vector3d::Zero();
+
+  reset_pose_ = false;
+  reset_tool_center_ = false;
+  move_tool_center_ = false;
+  hold_pose_ = false;
+  hold_pose_pressed_ = false;
+  ROS_INFO_STREAM("Joystick Control started.");
+
+  gripper_speed_ = 0.0;
   enabled_ = true;
 }
 
