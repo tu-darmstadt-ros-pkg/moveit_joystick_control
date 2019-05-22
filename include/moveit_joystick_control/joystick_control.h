@@ -42,6 +42,7 @@ private:
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
+  bool initialized_;
   bool enabled_;
 
 //  ControllerConfig config_;

@@ -11,8 +11,10 @@ namespace moveit_joystick_control {
 JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
   : nh_(nh),
     pnh_(pnh),
+    initialized_(false),
     enabled_(false),
     free_angle_(-1),
+    tool_center_offset_(Eigen::Affine3d::Identity()),
     gripper_pos_(0.0),
     gripper_speed_(0.0),
     joint_state_received_(false),
@@ -88,9 +90,9 @@ void JoystickControl::starting()
   }
   twist_.linear = Eigen::Vector3d::Zero();
   twist_.angular = Eigen::Vector3d::Zero();
-  ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-  tool_center_offset_ = Eigen::Affine3d::Identity();
-  reset_pose_ = false;
+//  ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
+//  tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
+  reset_pose_ = true;
   reset_tool_center_ = false;
   move_tool_center_ = false;
   hold_pose_ = false;
@@ -105,11 +107,15 @@ void JoystickControl::starting()
     gripper_pos_ = gripper_state[0];
   }
   gripper_speed_ = 0.0;
+  initialized_ = true;
   enabled_ = true;
 }
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
+  if (!initialized_) {
+    return;
+  }
   updateArm(time, period);
   updateGripper(time, period);
 
