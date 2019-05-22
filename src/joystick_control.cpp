@@ -49,6 +49,7 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
 
   joint_names_ = ik_.getJointNames();
   goal_state_.resize(joint_names_.size());
+  previous_goal_state_.resize(joint_names_.size());
 
   std::string robot_description;
   if(!nh.getParam("/robot_description", robot_description)) {
@@ -109,7 +110,6 @@ void JoystickControl::starting()
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
 {
-  if (!enabled_) return;
   updateArm(time, period);
   updateGripper(time, period);
 
@@ -132,20 +132,24 @@ void JoystickControl::stopping()
 
 void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& period)
 {
-  Eigen::Affine3d old_goal_ = ee_goal_pose_;
-  current_joint_angles_ = stateFromList(last_state_, joint_names_);
+  Eigen::Affine3d old_goal = ee_goal_pose_;
+  previous_goal_state_ = goal_state_;
 
   // Compute new goal pose
-  computeNewGoalPose(period);
+  if (!computeNewGoalPose(period)) {
+    // Goal pose has not changed
+    return;
+  }
 
   // Compute ik
-  if (ik_.calcInvKin(ee_goal_pose_, current_joint_angles_, goal_state_)) {
+  if (ik_.calcInvKin(ee_goal_pose_, previous_goal_state_, goal_state_)) { // Init solution with previous goal state
     // Check if solution is collision free
     contact_map_.clear();
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_, contact_map_);
     if (!collision_free) {
 //      ROS_WARN_STREAM("Solution is in collision.");
-      ee_goal_pose_ = old_goal_;
+      ee_goal_pose_ = old_goal;
+      goal_state_ = previous_goal_state_;
     } else {
       // Send new goal to trajectory controllers
       trajectory_msgs::JointTrajectoryPoint point;
@@ -159,17 +163,19 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     }
 
   } else {
-    ee_goal_pose_ = old_goal_;
+    ee_goal_pose_ = old_goal;
   }
 }
 
-void JoystickControl::computeNewGoalPose(const ros::Duration& period)
+bool JoystickControl::computeNewGoalPose(const ros::Duration& period)
 {
   if (reset_pose_) {
     // Reset end-effector goal
+    current_joint_angles_ = stateFromList(last_state_, joint_names_);
     ee_goal_pose_ = ik_.getEndEffectorPose(current_joint_angles_);
+    tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
     reset_pose_ = false;
-    return;
+    return true;
   }
 
   if (reset_tool_center_) {
@@ -177,7 +183,7 @@ void JoystickControl::computeNewGoalPose(const ros::Duration& period)
     tool_center_offset_ = Eigen::Affine3d::Identity();
     tool_goal_pose_ = ee_goal_pose_;
     reset_tool_center_ = false;
-    return;
+    return false;
   }
 
   if (hold_pose_) {
@@ -186,19 +192,20 @@ void JoystickControl::computeNewGoalPose(const ros::Duration& period)
       transform_stamped = tf_buffer_.lookupTransform(ik_.getBaseFrame(), hold_goal_pose_.header.frame_id, ros::Time(0));
     } catch (tf2::TransformException &ex) {
       ROS_WARN("%s",ex.what());
-      return;
+      return false;
     }
     Eigen::Affine3d base_to_frame;
     tf::transformMsgToEigen(transform_stamped.transform, base_to_frame);
     Eigen::Affine3d frame_to_ee;
     tf::poseMsgToEigen(hold_goal_pose_.pose, frame_to_ee);
     ee_goal_pose_ = base_to_frame * frame_to_ee;
-    return;
+    tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
+    return true;
   }
 
   // Update endeffector pose with current command
   if (twist_.linear == Eigen::Vector3d::Zero() && twist_.angular == Eigen::Vector3d::Zero()) {
-    return;
+    return false;
   }
   Eigen::Affine3d twist_transform(rpyToRot(period.toSec() * twist_.angular));
   twist_transform.translation() = period.toSec() * twist_.linear;
@@ -208,20 +215,22 @@ void JoystickControl::computeNewGoalPose(const ros::Duration& period)
   if (!move_tool_center_) {
     // Move end-effector
     ee_goal_pose_ = tool_goal_pose_ * tool_center_offset_.inverse(Eigen::Isometry);
+    return true;
   } else {
     // Move tool frame
     tool_center_offset_ = tool_center_movement;
+    return false;
   }
 
   // Update free angles
-  if (free_angle_ != -1) {
-    Eigen::Affine3d current_pose = ik_.getEndEffectorPose(current_joint_angles_);
-    Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse(Eigen::Isometry) * current_pose;
-    Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
-//    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
+//  if (free_angle_ != -1) {
+//    Eigen::Affine3d current_pose = ik_.getEndEffectorPose(current_joint_angles_);
+//    Eigen::Affine3d goal_to_current = ee_goal_pose_.inverse(Eigen::Isometry) * current_pose;
+//    Eigen::Vector3d goal_to_current_rpy = rotToRpy(goal_to_current.linear());
+////    ROS_INFO_STREAM("current_rpy: [" << current_rpy[0] << ", " << current_rpy[1] << ", " << current_rpy[2] << "]");
 
-    ee_goal_pose_ = ee_goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
-  }
+//    ee_goal_pose_ = ee_goal_pose_ * Eigen::AngleAxisd(goal_to_current_rpy[free_angle_], Eigen::Vector3d::UnitX());
+//  }
 }
 
 void JoystickControl::updateGripper(const ros::Time& /*time*/, const ros::Duration& period)
@@ -264,6 +273,7 @@ void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
 
 void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
+  if (!enabled_) return;
   // Update command
   if (config_["reset"]->isPressed(*joy_ptr)) {
     reset_pose_ = true;
@@ -278,8 +288,7 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
       hold_pose_ = !hold_pose_;
       ROS_INFO_STREAM("Hold pose " << (hold_pose_ ? "enabled" : "disabled"));
       if (hold_pose_) {
-        current_joint_angles_ = stateFromList(last_state_, joint_names_);
-        hold_goal_pose_ = getEndEffectorPoseInFrame(current_joint_angles_, "odom");
+        hold_goal_pose_ = getPoseInFrame(ee_goal_pose_, "odom");
       }
       hold_pose_pressed_ = true;
     }
@@ -371,9 +380,9 @@ void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_sta
   robot_state_pub_.publish(display_robot_state);
 }
 
-geometry_msgs::PoseStamped JoystickControl::getEndEffectorPoseInFrame(const std::vector<double>& joint_positions, std::string frame)
+geometry_msgs::PoseStamped JoystickControl::getPoseInFrame(const Eigen::Affine3d& pose, std::string frame)
 {
-  // Get base pose
+  // Get transform from base to desired frame
   geometry_msgs::TransformStamped transform_stamped;
   try {
     transform_stamped = tf_buffer_.lookupTransform(frame, ik_.getBaseFrame(), ros::Time(0));
@@ -383,16 +392,15 @@ geometry_msgs::PoseStamped JoystickControl::getEndEffectorPoseInFrame(const std:
   Eigen::Affine3d frame_to_base;
   tf::transformMsgToEigen(transform_stamped.transform, frame_to_base);
 
-  // Get EE pose
-  Eigen::Affine3d base_to_ee = ik_.getEndEffectorPose(joint_positions);
+  // Transform given pose to desired frame
+  Eigen::Affine3d frame_to_pose = frame_to_base * pose;
 
-  // Multiply and return
-  Eigen::Affine3d frame_to_ee = frame_to_base * base_to_ee;
-  geometry_msgs::PoseStamped pose;
-  pose.header.frame_id = frame;
-  pose.header.stamp = transform_stamped.header.stamp;
-  tf::poseEigenToMsg(frame_to_ee, pose.pose);
-  return pose;
+  // Build message
+  geometry_msgs::PoseStamped pose_stamped;
+  pose_stamped.header.frame_id = frame;
+  pose_stamped.header.stamp = transform_stamped.header.stamp;
+  tf::poseEigenToMsg(frame_to_pose, pose_stamped.pose);
+  return pose_stamped;
 }
 
 }

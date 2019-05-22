@@ -26,14 +26,18 @@ public:
   void stopping();
 private:
   void updateArm(const ros::Time& time, const ros::Duration& period);
-  void computeNewGoalPose(const ros::Duration& period);
+  /// Updates the goal pose
+  /// Returns true if the goal pose has changed
+  bool computeNewGoalPose(const ros::Duration& period);
   void updateGripper(const ros::Time& time, const ros::Duration& period);
   void loadControllerConfig(const ros::NodeHandle& nh);
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   Twist joyToTwist(const sensor_msgs::Joy& joy);
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
-  geometry_msgs::PoseStamped getEndEffectorPoseInFrame(const std::vector<double>& joint_positions, std::string frame);
+  /// Transforms pose to desired frame
+  /// Pose has to be relative to base frame
+  geometry_msgs::PoseStamped getPoseInFrame(const Eigen::Affine3d& pose, std::string frame);
 
   ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
@@ -58,6 +62,7 @@ private:
   Eigen::Affine3d tool_goal_pose_; // Goal pose of tool
   Eigen::Affine3d ee_goal_pose_; // Goal pose of the end-effector
   std::vector<double> goal_state_;
+  std::vector<double> previous_goal_state_;
 
   collision_detection::CollisionResult::ContactMap contact_map_;
 

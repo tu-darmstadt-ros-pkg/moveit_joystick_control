@@ -21,8 +21,6 @@ void enabledCb(const std_msgs::BoolConstPtr& bool_ptr) {
   setEnabled(bool_ptr->data);
 }
 
-
-
 int main(int argc, char** argv) {
   ros::init(argc, argv, "moveit_joystick_control");
 
