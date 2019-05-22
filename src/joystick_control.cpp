@@ -153,7 +153,6 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     contact_map_.clear();
     bool collision_free = ik_.isCollisionFree(last_state_, goal_state_, contact_map_);
     if (!collision_free) {
-//      ROS_WARN_STREAM("Solution is in collision.");
       ee_goal_pose_ = old_goal;
       goal_state_ = previous_goal_state_;
     } else {
@@ -167,9 +166,10 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
 
       cmd_pub_.publish(trajectory);
     }
-
   } else {
+    // IK failed
     ee_goal_pose_ = old_goal;
+    goal_state_ = previous_goal_state_;
   }
 }
 
@@ -178,6 +178,7 @@ bool JoystickControl::computeNewGoalPose(const ros::Duration& period)
   if (reset_pose_) {
     // Reset end-effector goal
     current_joint_angles_ = stateFromList(last_state_, joint_names_);
+    previous_goal_state_ = current_joint_angles_;
     ee_goal_pose_ = ik_.getEndEffectorPose(current_joint_angles_);
     tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
     reset_pose_ = false;
