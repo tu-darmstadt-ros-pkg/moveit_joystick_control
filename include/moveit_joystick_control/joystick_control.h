@@ -1,14 +1,17 @@
 #ifndef JOYSTICK_CONTROL_H
 #define JOYSTICK_CONTROL_H
 
-#include <sensor_msgs/Joy.h>
 #include <Eigen/Eigen>
+
+#include <controller_interface/controller.h>
+#include <hardware_interface/joint_command_interface.h>
+#include <pluginlib/class_list_macros.h>
+#include <urdf/model.h>
+#include <tf2_ros/transform_listener.h>
+#include <sensor_msgs/Joy.h>
 
 #include <moveit_joystick_control/inverse_kinematics.h>
 #include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
-#include <urdf/model.h>
-
-#include <tf2_ros/transform_listener.h>
 
 namespace moveit_joystick_control {
 
@@ -17,20 +20,23 @@ struct Twist {
   Eigen::Vector3d angular;
 };
 
-class JoystickControl {
+class JoystickControl : public controller_interface::Controller<hardware_interface::PositionJointInterface> {
 public:
-  JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh);
+  JoystickControl();
+
+  bool init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh);
 
   void starting();
   void update(const ros::Time& time, const ros::Duration& period);
   void stopping();
 private:
+  bool loadGripperJointLimits();
   void updateArm(const ros::Time& time, const ros::Duration& period);
   /// Updates the goal pose
   /// Returns true if the goal pose has changed
   bool computeNewGoalPose(const ros::Duration& period);
   void updateGripper(const ros::Time& time, const ros::Duration& period);
-  void loadControllerConfig(const ros::NodeHandle& nh);
+  void loadJoystickConfig(const ros::NodeHandle& nh);
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   Twist joyToTwist(const sensor_msgs::Joy& joy);
@@ -39,7 +45,6 @@ private:
   /// Pose has to be relative to base frame
   geometry_msgs::PoseStamped getPoseInFrame(const Eigen::Affine3d& pose, std::string frame);
 
-  ros::NodeHandle nh_;
   ros::NodeHandle pnh_;
 
   bool initialized_;
@@ -71,16 +76,19 @@ private:
   double gripper_pos_;
   double gripper_speed_;
 
-  std::string gripper_joint_name_;
   std::vector<std::string> joint_names_;
+  std::vector<hardware_interface::JointHandle> joint_handles_;
   bool joint_state_received_;
   sensor_msgs::JointState last_state_;
   std::vector<double> current_joint_angles_;
 
-  InverseKinematics ik_;
-  urdf::Model urdf_model_;
+  std::string gripper_joint_name_;
+  hardware_interface::JointHandle gripper_handle_;
   double gripper_upper_limit_;
   double gripper_lower_limit_;
+
+  InverseKinematics ik_;
+
 
   bool hold_pose_;
   bool hold_pose_pressed_;

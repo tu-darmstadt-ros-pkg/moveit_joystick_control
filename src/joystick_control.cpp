@@ -8,9 +8,8 @@
 
 namespace moveit_joystick_control {
 
-JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandle& pnh)
-  : nh_(nh),
-    pnh_(pnh),
+JoystickControl::JoystickControl()
+  :   pnh_(pnh),
     initialized_(false),
     enabled_(false),
     free_angle_(-1),
@@ -22,13 +21,19 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
     hold_pose_pressed_(false),
     tf_listener_(tf_buffer_)
 {
+
+}
+
+bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh)
+{
+  pnh_ = nh;
   // Load parameters
-  pnh.param("max_speed_linear", max_speed_linear_, 0.05);
-  pnh.param("max_speed_angular", max_speed_angular_, 0.01);
-  pnh.param("max_speed_gripper", max_speed_gripper_, 0.05);
+  pnh_.param("max_speed_linear", max_speed_linear_, 0.05);
+  pnh_.param("max_speed_angular", max_speed_angular_, 0.01);
+  pnh_.param("max_speed_gripper", max_speed_gripper_, 0.05);
 
   std::string free_angle_str;
-  if (pnh.getParam("free_angle", free_angle_str) && free_angle_str != "") {
+  if (pnh_.getParam("free_angle", free_angle_str) && free_angle_str != "") {
     std::transform(free_angle_str.begin(), free_angle_str.end(), free_angle_str.begin(), ::tolower);
     if (free_angle_str == "x") {
       free_angle_ = 0;
@@ -42,41 +47,44 @@ JoystickControl::JoystickControl(const ros::NodeHandle& nh, const ros::NodeHandl
     }
   }
 
-  pnh.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
+  loadJoystickConfig(pnh_);
 
+  // Arm group
   std::string group_name;
-  pnh.param<std::string>("group_name", group_name, "arm_group");
+  pnh_.param<std::string>("group_name", group_name, "arm_group");
   ik_.init(group_name);
-  loadControllerConfig(pnh);
 
+  // Get joint handles
   joint_names_ = ik_.getJointNames();
+  for (const std::string& joint: joint_names_) {
+    try {
+      joint_handles_.push_back(hw->getHandle(joint));
+    } catch (hardware_interface::HardwareInterfaceException& e) {
+      ROS_ERROR_STREAM(e.what());
+      return false;
+    }
+  }
   goal_state_.resize(joint_names_.size());
   previous_goal_state_.resize(joint_names_.size());
 
-  std::string robot_description;
-  if(!nh.getParam("/robot_description", robot_description)) {
-    ROS_ERROR_STREAM("Failed to load /robot_description.");
+  // Gripper
+  pnh_.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
+  // Get handle
+  try {
+    gripper_handle_ = hw->getHandle(gripper_joint_name_);
+  } catch (hardware_interface::HardwareInterfaceException& e) {
+    ROS_ERROR_STREAM(e.what());
+    return false;
   }
-  // Loading urdf
-  if (!urdf_model_.initString(robot_description)) {
-    ROS_ERROR_STREAM("Failed to parse urdf.");
+  if (!loadGripperJointLimits()) {
+    return false;
   }
-  // Load gripper limits
-  urdf::JointConstSharedPtr gripper_joint = urdf_model_.getJoint(gripper_joint_name_);
-  if (!gripper_joint) {
-    ROS_ERROR_STREAM("Could not find gripper joint '" << gripper_joint_name_ << "'.");
-  }
-  gripper_upper_limit_ = gripper_joint->limits->upper;
-  gripper_lower_limit_ = gripper_joint->limits->lower;
 
   // Subscribers and publishers
   goal_pose_pub_ = pnh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
   robot_state_pub_ = pnh_.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
-  cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/command", 10);
-  gripper_cmd_pub_ = nh_.advertise<trajectory_msgs::JointTrajectory>("/gripper_command", 10);
 
-  joint_state_sub_ = nh_.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
-  joy_sub_ = nh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
+  joy_sub_ = pnh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
 }
 
 void JoystickControl::starting()
@@ -134,6 +142,30 @@ void JoystickControl::stopping()
   if (!enabled_) return;
   ROS_INFO_STREAM("Joystick Control stopped.");
   enabled_ = false;
+}
+
+bool JoystickControl::loadGripperJointLimits()
+{
+  std::string robot_description;
+  if(!pnh_.getParam("/robot_description", robot_description)) {
+    ROS_ERROR_STREAM("Failed to load /robot_description.");
+    return false;
+  }
+  // Loading urdf
+  urdf::Model urdf_model;
+  if (!urdf_model.initString(robot_description)) {
+    ROS_ERROR_STREAM("Failed to parse urdf.");
+    return false;
+  }
+  // Load gripper limits
+  urdf::JointConstSharedPtr gripper_joint = urdf_model.getJoint(gripper_joint_name_);
+  if (!gripper_joint) {
+    ROS_ERROR_STREAM("Could not find gripper joint '" << gripper_joint_name_ << "'.");
+    return false;
+  }
+  gripper_upper_limit_ = gripper_joint->limits->upper;
+  gripper_lower_limit_ = gripper_joint->limits->lower;
+  return true;
 }
 
 void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& period)
@@ -259,7 +291,7 @@ void JoystickControl::updateGripper(const ros::Time& /*time*/, const ros::Durati
   gripper_cmd_pub_.publish(trajectory);
 }
 
-void JoystickControl::loadControllerConfig(const ros::NodeHandle& nh)
+void JoystickControl::loadJoystickConfig(const ros::NodeHandle& nh)
 {
   ROS_INFO_STREAM("Loading controller config from namespace " << nh.getNamespace() + "/controller_configuration");
   XmlRpc::XmlRpcValue mapping;

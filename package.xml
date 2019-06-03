@@ -19,4 +19,7 @@
   <depend>eigen_conversions</depend>
   <depend>moveit_msgs</depend>
   <depend>tf2_ros</depend>
+  <depend>controller_interface</depend>
+  <depend>hardware_interface</depend>
+  <depend>pluginlib</depend>
 </package>
