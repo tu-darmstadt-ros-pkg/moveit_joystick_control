@@ -21,5 +21,8 @@
   <depend>tf2_ros</depend>
   <depend>controller_interface</depend>
   <depend>hardware_interface</depend>
-  <depend>pluginlib</depend>
+
+  <export>
+    <controller_interface plugin="${prefix}/ros_control_plugins.xml"/>
+  </export>
 </package>

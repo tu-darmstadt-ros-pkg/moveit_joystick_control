@@ -6,6 +6,7 @@
 #include <controller_interface/controller.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <pluginlib/class_list_macros.h>
+
 #include <urdf/model.h>
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/Joy.h>
@@ -24,11 +25,11 @@ class JoystickControl : public controller_interface::Controller<hardware_interfa
 public:
   JoystickControl();
 
-  bool init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh);
+  bool init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh) override;
 
-  void starting();
-  void update(const ros::Time& time, const ros::Duration& period);
-  void stopping();
+  void starting(const ros::Time&) override;
+  void update(const ros::Time& time, const ros::Duration& period) override;
+  void stopping(const ros::Time&) override;
 private:
   bool loadGripperJointLimits();
   void updateArm(const ros::Time& time, const ros::Duration& period);
@@ -97,8 +98,6 @@ private:
   ros::Subscriber enable_sub_;
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
-  ros::Publisher cmd_pub_;
-  ros::Publisher gripper_cmd_pub_;
   ros::Publisher goal_pose_pub_;
   ros::Publisher robot_state_pub_;
 

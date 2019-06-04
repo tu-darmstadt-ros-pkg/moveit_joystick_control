@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+
+<launch>
+  <group ns="manipulator_arm_control">
+    <node name="joystick_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="--stopped arm_joystick_control" />
+
+    <!--parameters-->
+    <rosparam file="$(find moveit_joystick_control)/config/controllers.yaml" command="load" />
+    <rosparam file="$(find moveit_joystick_control)/config/logitech_f310.yaml" command="load" ns="arm_joystick_control"/>
+  </group>
+</launch> 

@@ -9,8 +9,7 @@
 namespace moveit_joystick_control {
 
 JoystickControl::JoystickControl()
-  :   pnh_(pnh),
-    initialized_(false),
+  : initialized_(false),
     enabled_(false),
     free_angle_(-1),
     tool_center_offset_(Eigen::Affine3d::Identity()),
@@ -49,7 +48,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 
   loadJoystickConfig(pnh_);
 
-  // Arm group
+  // **** Arm group ****
   std::string group_name;
   pnh_.param<std::string>("group_name", group_name, "arm_group");
   ik_.init(group_name);
@@ -65,9 +64,10 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
     }
   }
   goal_state_.resize(joint_names_.size());
+  current_joint_angles_.resize(joint_names_.size());
   previous_goal_state_.resize(joint_names_.size());
 
-  // Gripper
+  // **** Gripper ****
   pnh_.param<std::string>("gripper_joint_name", gripper_joint_name_, "gripper_servo_joint");
   // Get handle
   try {
@@ -76,6 +76,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
     ROS_ERROR_STREAM(e.what());
     return false;
   }
+  // Get limits
   if (!loadGripperJointLimits()) {
     return false;
   }
@@ -85,38 +86,26 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   robot_state_pub_ = pnh_.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
 
   joy_sub_ = pnh_.subscribe("/joy", 10, &JoystickControl::joyCb, this);
+  return true;
 }
 
-void JoystickControl::starting()
+void JoystickControl::starting(const ros::Time&)
 {
   if (enabled_) return;
   // Set initial endeffector pose
-  ROS_INFO_STREAM("Waiting for joint states..");
-  while (!joint_state_received_) {
-    ros::Duration(0.1).sleep();
-    ros::spinOnce();
-  }
   twist_.linear = Eigen::Vector3d::Zero();
   twist_.angular = Eigen::Vector3d::Zero();
-//  ee_goal_pose_ = ik_.getEndEffectorPose(stateFromList(last_state_, joint_names_));
-//  tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
   reset_pose_ = true;
   reset_tool_center_ = false;
   move_tool_center_ = false;
   hold_pose_ = false;
   hold_pose_pressed_ = false;
-  ROS_INFO_STREAM("Joystick Control started.");
-
-  std::vector<double> gripper_state = stateFromList(last_state_, std::vector<std::string>(1, gripper_joint_name_));
-  if (gripper_state.empty()) {
-    ROS_WARN_STREAM("Could not retrieve gripper position. Initializing with 0");
-    gripper_pos_ = 0;
-  } else {
-    gripper_pos_ = gripper_state[0];
-  }
+  gripper_pos_ = gripper_handle_.getPosition();
   gripper_speed_ = 0.0;
   initialized_ = true;
   enabled_ = true;
+
+  ROS_INFO_STREAM("Joystick Control started.");
 }
 
 void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
@@ -124,20 +113,28 @@ void JoystickControl::update(const ros::Time& time, const ros::Duration& period)
   if (!initialized_) {
     return;
   }
+  // Get current state
+  for (unsigned int i = 0; i < joint_names_.size(); i++) {
+    current_joint_angles_[i] = joint_handles_[i].getPosition();
+  }
+
+  // Compute next state
   updateArm(time, period);
   updateGripper(time, period);
 
-  // Publish robot state display
+  // Visualization:
+  // TODO: Not real-time safe
+  // Publish desired robot state
   publishRobotState(goal_state_, contact_map_);
 
-  // Visualization: Publish new goal pose
+  // Publish desired goal pose
   geometry_msgs::PoseStamped goal_pose_msg;
   goal_pose_msg.header.frame_id = ik_.getBaseFrame();
   tf::poseEigenToMsg(tool_goal_pose_, goal_pose_msg.pose);
   goal_pose_pub_.publish(goal_pose_msg);
 }
 
-void JoystickControl::stopping()
+void JoystickControl::stopping(const ros::Time&)
 {
   if (!enabled_) return;
   ROS_INFO_STREAM("Joystick Control stopped.");
@@ -174,10 +171,7 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
   previous_goal_state_ = goal_state_;
 
   // Compute new goal pose
-  if (!computeNewGoalPose(period)) {
-    // Goal pose has not changed
-    return;
-  }
+  computeNewGoalPose(period);
 
   // Compute ik
   if (ik_.calcInvKin(ee_goal_pose_, previous_goal_state_, goal_state_)) { // Init solution with previous goal state
@@ -187,21 +181,16 @@ void JoystickControl::updateArm(const ros::Time& /*time*/, const ros::Duration& 
     if (!collision_free) {
       ee_goal_pose_ = old_goal;
       goal_state_ = previous_goal_state_;
-    } else {
-      // Send new goal to trajectory controllers
-      trajectory_msgs::JointTrajectoryPoint point;
-      point.positions = goal_state_;
-      point.time_from_start = ros::Duration(0.100);
-      trajectory_msgs::JointTrajectory trajectory;
-      trajectory.joint_names = joint_names_;
-      trajectory.points.push_back(point);
-
-      cmd_pub_.publish(trajectory);
     }
   } else {
     // IK failed
     ee_goal_pose_ = old_goal;
     goal_state_ = previous_goal_state_;
+  }
+
+  // Write next goal state
+  for (unsigned int i = 0; i < joint_names_.size(); i++) {
+    joint_handles_[i].setCommand(goal_state_[i]);
   }
 }
 
@@ -209,7 +198,6 @@ bool JoystickControl::computeNewGoalPose(const ros::Duration& period)
 {
   if (reset_pose_) {
     // Reset end-effector goal
-    current_joint_angles_ = stateFromList(last_state_, joint_names_);
     previous_goal_state_ = current_joint_angles_;
     ee_goal_pose_ = ik_.getEndEffectorPose(current_joint_angles_);
     tool_goal_pose_ = ee_goal_pose_ * tool_center_offset_;
@@ -274,21 +262,9 @@ bool JoystickControl::computeNewGoalPose(const ros::Duration& period)
 
 void JoystickControl::updateGripper(const ros::Time& /*time*/, const ros::Duration& period)
 {
-  if (gripper_speed_ == 0.0) {
-    return;
-  }
   gripper_pos_ += period.toSec() * gripper_speed_;
   gripper_pos_ = std::min(gripper_upper_limit_, std::max(gripper_lower_limit_, gripper_pos_));
-//  ROS_INFO_STREAM("[" << gripper_lower_limit_ << " < " << gripper_pos_ << " < " << gripper_upper_limit_ << "]");
-
-  // Send new gripper command
-  trajectory_msgs::JointTrajectoryPoint point;
-  point.positions = std::vector<double>(1, gripper_pos_);  point.time_from_start = ros::Duration(0.100);
-  trajectory_msgs::JointTrajectory trajectory;
-  trajectory.joint_names = std::vector<std::string>(1, gripper_joint_name_);
-  trajectory.points.push_back(point);
-
-  gripper_cmd_pub_.publish(trajectory);
+  gripper_handle_.setCommand(gripper_pos_);
 }
 
 void JoystickControl::loadJoystickConfig(const ros::NodeHandle& nh)
@@ -338,8 +314,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
   move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
   twist_ = joyToTwist(*joy_ptr);
   gripper_speed_ = max_speed_gripper_ * config_["gripper"]->computeCommand(*joy_ptr);
-//  ROS_INFO_STREAM("linear: [" << twist_.linear.x() << ", " << twist_.linear.y() << ", " << twist_.linear.z() << "]");
-//  ROS_INFO_STREAM("angular: [" << twist_.angular.x() << ", " << twist_.angular.y() << ", " << twist_.angular.z() << "]");
 }
 
 void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg)
@@ -443,3 +417,5 @@ geometry_msgs::PoseStamped JoystickControl::getPoseInFrame(const Eigen::Affine3d
 }
 
 }
+
+PLUGINLIB_EXPORT_CLASS(moveit_joystick_control::JoystickControl, controller_interface::ControllerBase);

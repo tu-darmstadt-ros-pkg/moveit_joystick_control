@@ -16,7 +16,6 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   controller_interface
   hardware_interface
-  pluginlib
 )
 
 ###################################
@@ -25,7 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES moveit_joystick_control
-  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions moveit_msgs tf2_ros controller_interface hardware_interface pluginlib
+  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions moveit_msgs tf2_ros controller_interface hardware_interface
 #  DEPENDS system_lib
 )
 
@@ -70,12 +69,12 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 ## Declare a C++ executable
-add_executable(joystick_control_node src/joystick_control_node.cpp)
+#add_executable(joystick_control_node src/joystick_control_node.cpp)
 
 ## Add cmake target dependencies of the executable
-add_dependencies(joystick_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+#add_dependencies(joystick_control_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(joystick_control_node
-  ${PROJECT_NAME}
-)
+#target_link_libraries(joystick_control_node
+#  ${PROJECT_NAME}
+#)

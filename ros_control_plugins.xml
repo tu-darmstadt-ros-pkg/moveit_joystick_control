@@ -1,0 +1,9 @@
+<library path="lib/libmoveit_joystick_control">
+  <class name="moveit_joystick_control/JoystickControl"
+         type="moveit_joystick_control::JoystickControl" 
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      IK joystick controller based on MoveIt interfaces.
+    </description>
+  </class>
+</library>
