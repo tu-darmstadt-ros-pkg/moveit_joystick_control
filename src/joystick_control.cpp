@@ -27,8 +27,6 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 {
   pnh_ = nh;
   // Load parameters
-  pnh_.param("max_speed_linear", max_speed_linear_, 0.05);
-  pnh_.param("max_speed_angular", max_speed_angular_, 0.01);
   pnh_.param("max_speed_gripper", max_speed_gripper_, 0.05);
 
   std::string free_angle_str;
@@ -87,6 +85,9 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 
   std::string joy_topic = pnh_.param("joy_topic", std::string("/joy"));
   joy_sub_ = pnh_.subscribe(joy_topic, 10, &JoystickControl::joyCb, this);
+
+  std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
+  twist_cmd_sub_ = pnh_.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
   return true;
 }
 
@@ -313,8 +314,17 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
   }
 
   move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
-  twist_ = joyToTwist(*joy_ptr);
   gripper_speed_ = max_speed_gripper_ * config_["gripper"]->computeCommand(*joy_ptr);
+}
+
+void JoystickControl::twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg)
+{
+  twist_.linear.x() = twist_msg->linear.x;
+  twist_.linear.y() = twist_msg->linear.y;
+  twist_.linear.z() = twist_msg->linear.z;
+  twist_.angular.x() = twist_msg->angular.x;
+  twist_.angular.y() = twist_msg->angular.y;
+  twist_.angular.z() = twist_msg->angular.z;
 }
 
 void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg)
@@ -339,20 +349,6 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
       }
     }
   }
-}
-
-Twist JoystickControl::joyToTwist(const sensor_msgs::Joy& joy)
-{
-  Twist twist;
-  twist.linear.x() = max_speed_linear_ * config_["translate_x"]->computeCommand(joy);
-  twist.linear.y() = max_speed_linear_ * config_["translate_y"]->computeCommand(joy);
-  twist.linear.z() = max_speed_linear_ * config_["translate_z"]->computeCommand(joy);
-
-  twist.angular.x() = max_speed_angular_ * config_["rotate_roll"]->computeCommand(joy);
-  twist.angular.y() = max_speed_angular_ * config_["rotate_pitch"]->computeCommand(joy);
-  twist.angular.z() = max_speed_angular_ * config_["rotate_yaw"]->computeCommand(joy);
-
-  return twist;
 }
 
 void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map)

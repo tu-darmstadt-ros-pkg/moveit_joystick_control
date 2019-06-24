@@ -39,8 +39,8 @@ private:
   void updateGripper(const ros::Time& time, const ros::Duration& period);
   void loadJoystickConfig(const ros::NodeHandle& nh);
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
+  void twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
-  Twist joyToTwist(const sensor_msgs::Joy& joy);
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame
   /// Pose has to be relative to base frame
@@ -58,9 +58,6 @@ private:
 
   bool move_tool_center_;
 
-
-  double max_speed_linear_;
-  double max_speed_angular_;
   double max_speed_gripper_;
 
   int free_angle_;
@@ -90,11 +87,11 @@ private:
 
   InverseKinematics ik_;
 
-
   bool hold_pose_;
   bool hold_pose_pressed_;
   geometry_msgs::PoseStamped hold_goal_pose_;
 
+  ros::Subscriber twist_cmd_sub_;
   ros::Subscriber enable_sub_;
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;

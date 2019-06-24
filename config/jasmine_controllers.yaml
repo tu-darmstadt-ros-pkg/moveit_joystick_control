@@ -1,10 +1,9 @@
 arm_joystick_control:
   type: moveit_joystick_control/JoystickControl
-  max_speed_linear: 0.1
-  max_speed_angular: 0.4
   max_speed_gripper: 1
   group_name: arm_with_gripper_cam_group
   gripper_joint_name: gripper_servo_joint
   joy_topic: /manipulator_arm_joystick_control/joy
+  twist_cmd_topic: /manipulator_arm_control/twist_cmd
   
   #TODO: robot_description
