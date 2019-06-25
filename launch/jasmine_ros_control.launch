@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 
 <launch>
+  <include file="$(find hector_joy_tcp_teleop)/launch/joy_to_tcp_twist_controller.launch"/>
+  
   <group ns="manipulator_arm_control">
     <node name="joystick_controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" args="--stopped arm_joystick_control" />
     
