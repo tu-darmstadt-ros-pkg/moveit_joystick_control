@@ -23,9 +23,9 @@ JoystickControl::JoystickControl()
 
 }
 
-bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh)
+bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh, ros::NodeHandle& pnh)
 {
-  pnh_ = nh;
+  pnh_ = pnh;
   // Load parameters
   pnh_.param("max_speed_gripper", max_speed_gripper_, 0.05);
 
@@ -80,14 +80,14 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   }
 
   // Subscribers and publishers
-  goal_pose_pub_ = pnh_.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
-  robot_state_pub_ = pnh_.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
+  goal_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
+  robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
 
   std::string joy_topic = pnh_.param("joy_topic", std::string("/joy"));
-  joy_sub_ = pnh_.subscribe(joy_topic, 10, &JoystickControl::joyCb, this);
+  joy_sub_ = nh.subscribe(joy_topic, 10, &JoystickControl::joyCb, this);
 
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
-  twist_cmd_sub_ = pnh_.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
+  twist_cmd_sub_ = nh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
   return true;
 }
 

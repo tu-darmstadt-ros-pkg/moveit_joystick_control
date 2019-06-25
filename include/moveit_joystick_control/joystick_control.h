@@ -25,7 +25,7 @@ class JoystickControl : public controller_interface::Controller<hardware_interfa
 public:
   JoystickControl();
 
-  bool init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh) override;
+  bool init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh, ros::NodeHandle& pnh) override;
 
   void starting(const ros::Time&) override;
   void update(const ros::Time& time, const ros::Duration& period) override;
