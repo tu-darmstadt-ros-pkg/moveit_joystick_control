@@ -42,24 +42,11 @@ include_directories(
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
   include/${PROJECT_NAME}/joystick_control.h
-  include/${PROJECT_NAME}/controller_mapping/controller_mapper_factory.h
-  include/${PROJECT_NAME}/controller_mapping/controller_mapper_base.h
-  include/${PROJECT_NAME}/controller_mapping/axis_mapper.h
-  include/${PROJECT_NAME}/controller_mapping/button_axis_mapper.h
-  include/${PROJECT_NAME}/controller_mapping/dual_axis_mapper.h
-  include/${PROJECT_NAME}/controller_mapping/button_mapper.h
   include/${PROJECT_NAME}/inverse_kinematics.h
   include/${PROJECT_NAME}/common.h
-
   src/joystick_control.cpp
   src/inverse_kinematics.cpp
   src/common.cpp
-
-  src/controller_mapping/controller_mapper_base.cpp
-  src/controller_mapping/axis_mapper.cpp
-  src/controller_mapping/button_axis_mapper.cpp
-  src/controller_mapping/dual_axis_mapper.cpp
-  src/controller_mapping/button_mapper.cpp
 
 )
 

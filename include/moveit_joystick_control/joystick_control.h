@@ -15,7 +15,6 @@
 #include <std_srvs/SetBool.h>
 
 #include <moveit_joystick_control/inverse_kinematics.h>
-#include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
 
 namespace moveit_joystick_control {
 
@@ -40,9 +39,7 @@ private:
   /// Returns true if the goal pose has changed
   bool computeNewGoalPose(const ros::Duration& period);
   void updateGripper(const ros::Time& time, const ros::Duration& period);
-  void loadJoystickConfig(const ros::NodeHandle& nh);
 
-  void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg);
   void gripperCmdCb(const std_msgs::Float64ConstPtr& float_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
@@ -61,8 +58,6 @@ private:
   bool initialized_;
   bool enabled_;
 
-//  ControllerConfig config_;
-  std::map<std::string, std::shared_ptr<ControllerMapperBase>> config_;
   bool reset_pose_;
   bool reset_tool_center_;
 
@@ -104,7 +99,6 @@ private:
   ros::Subscriber gripper_cmd_sub_;
   ros::Subscriber move_tool_twist_sub_;
   ros::Subscriber enable_sub_;
-  ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
   ros::ServiceServer reset_pose_server_;
   ros::ServiceServer reset_tool_pose_server_;

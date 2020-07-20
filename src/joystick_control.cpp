@@ -39,8 +39,6 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
     }
   }
 
-  loadJoystickConfig(pnh_);
-
   // **** Arm group ****
   std::string group_name;
   pnh_.param<std::string>("group_name", group_name, "arm_group");
@@ -77,9 +75,6 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   // Subscribers and publishers
   goal_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
   robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
-
-  std::string joy_topic = pnh_.param("joy_topic", std::string("/joy"));
-  joy_sub_ = nh.subscribe(joy_topic, 10, &JoystickControl::joyCb, this);
 
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
   twist_cmd_sub_ = nh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
@@ -269,31 +264,6 @@ void JoystickControl::updateGripper(const ros::Time& /*time*/, const ros::Durati
   gripper_pos_ += period.toSec() * gripper_speed_;
   gripper_pos_ = std::min(gripper_upper_limit_, std::max(gripper_lower_limit_, gripper_pos_));
   gripper_handle_.setCommand(gripper_pos_);
-}
-
-void JoystickControl::loadJoystickConfig(const ros::NodeHandle& nh)
-{
-  ROS_INFO_STREAM("Loading controller config from namespace " << nh.getNamespace() + "/controller_configuration");
-  XmlRpc::XmlRpcValue mapping;
-  nh.getParam("controller_configuration", mapping);
-  ROS_ASSERT(mapping.getType() == XmlRpc::XmlRpcValue::TypeStruct);
-  for(XmlRpc::XmlRpcValue::ValueStruct::const_iterator it = mapping.begin(); it != mapping.end(); ++it)
-  {
-    std::string action_name = it->first;
-    ros::NodeHandle action_nh(nh, "controller_configuration/" + action_name);
-    std::shared_ptr<ControllerMapperBase> controller_mapper = createControllerMapper(action_nh);
-    config_.emplace(action_name, controller_mapper);
-    ROS_INFO_STREAM("Added action: " << action_name);
-  }
-  if (config_.empty()) {
-    ROS_WARN_STREAM("No controller configuration defined");
-  }
-}
-
-void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
-{
-  if (!enabled_) return;
-  // Update command
 }
 
 void JoystickControl::twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg)
