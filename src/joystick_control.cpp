@@ -27,8 +27,6 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 {
   pnh_ = pnh;
   // Load parameters
-  pnh_.param("max_speed_gripper", max_speed_gripper_, 0.05);
-
   std::string free_angle_str;
   if (pnh_.getParam("free_angle", free_angle_str) && free_angle_str != "") {
     std::transform(free_angle_str.begin(), free_angle_str.end(), free_angle_str.begin(), ::tolower);
@@ -88,6 +86,9 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
   twist_cmd_sub_ = nh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
+
+  std::string gripper_topic = pnh_.param("gripper_cmd_topic", std::string("gripper_cmd"));
+  gripper_cmd_sub_ = nh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
   return true;
 }
 
@@ -314,7 +315,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
   }
 
   move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
-  gripper_speed_ = max_speed_gripper_ * config_["gripper"]->computeCommand(*joy_ptr);
 }
 
 void JoystickControl::twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg)
@@ -325,6 +325,11 @@ void JoystickControl::twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg)
   twist_.angular.x() = twist_msg->angular.x;
   twist_.angular.y() = twist_msg->angular.y;
   twist_.angular.z() = twist_msg->angular.z;
+}
+
+void JoystickControl::gripperCmdCb(const std_msgs::Float64ConstPtr& float_ptr)
+{
+  gripper_speed_ = float_ptr->data;
 }
 
 void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg)
