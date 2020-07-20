@@ -12,6 +12,7 @@
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Float64.h>
 #include <std_srvs/Empty.h>
+#include <std_srvs/SetBool.h>
 
 #include <moveit_joystick_control/inverse_kinematics.h>
 #include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
@@ -47,6 +48,7 @@ private:
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
   bool resetToolPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
+  bool holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
 
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame
@@ -95,7 +97,6 @@ private:
   InverseKinematics ik_;
 
   bool hold_pose_;
-  bool hold_pose_pressed_;
   geometry_msgs::PoseStamped hold_goal_pose_;
 
   ros::Subscriber twist_cmd_sub_;

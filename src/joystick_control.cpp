@@ -17,7 +17,6 @@ JoystickControl::JoystickControl()
     gripper_speed_(0.0),
     joint_state_received_(false),
     hold_pose_(false),
-    hold_pose_pressed_(false),
     tf_listener_(tf_buffer_)
 {
 
@@ -92,6 +91,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 
   reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
   reset_tool_pose_server_ = pnh_.advertiseService("reset_tool_pose", &JoystickControl::resetToolPoseCb, this);
+  hold_pose_server_ = pnh_.advertiseService("hold_pose", &JoystickControl::holdPoseCb, this);
   return true;
 }
 
@@ -105,7 +105,6 @@ void JoystickControl::starting(const ros::Time&)
   reset_tool_center_ = false;
   move_tool_center_ = false;
   hold_pose_ = false;
-  hold_pose_pressed_ = false;
   gripper_pos_ = gripper_handle_.getPosition();
   gripper_speed_ = 0.0;
   initialized_ = true;
@@ -296,20 +295,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   if (!enabled_) return;
   // Update command
-  if (config_["hold_pose"]->isPressed(*joy_ptr)) {
-    // If button is pressed the first time, toggle 'hold_pose'
-    if (!hold_pose_pressed_) { // Check if button is still pressed
-      hold_pose_ = !hold_pose_;
-      ROS_INFO_STREAM("Hold pose " << (hold_pose_ ? "enabled" : "disabled"));
-      if (hold_pose_) {
-        hold_goal_pose_ = getPoseInFrame(ee_goal_pose_, "odom");
-      }
-      hold_pose_pressed_ = true;
-    }
-  } else {
-    hold_pose_pressed_ = false;
-  }
-
   move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
 }
 
@@ -361,6 +346,18 @@ bool JoystickControl::resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs:
 bool JoystickControl::resetToolPoseCb(std_srvs::EmptyRequest&, std_srvs::EmptyResponse&)
 {
   reset_tool_center_ = true;
+  return true;
+}
+
+bool JoystickControl::holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&)
+{
+  if (hold_pose_ != request.data) {
+    hold_pose_ = request.data;
+    ROS_INFO_STREAM("Hold pose " << (hold_pose_ ? "enabled" : "disabled"));
+    if (hold_pose_) {
+      hold_goal_pose_ = getPoseInFrame(ee_goal_pose_, "odom");
+    }
+  }
   return true;
 }
 
