@@ -1,9 +1,0 @@
-<?xml version="1.0"?>
-<launch> 
-  
-  <include file="$(find moveit_joystick_control)/launch/jasmine_joystick.launch">
-  </include>
-  
-  <node pkg="joy" type="joy_node" name="joy" output="screen"/>
-
-</launch>
