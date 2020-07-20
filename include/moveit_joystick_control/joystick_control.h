@@ -44,7 +44,7 @@ private:
   void gripperCmdCb(const std_msgs::Float64ConstPtr& float_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
-  bool resetToolPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
+  bool resetToolCenterCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
   bool holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
   bool moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
 
@@ -101,7 +101,7 @@ private:
   ros::Subscriber enable_sub_;
   ros::Subscriber joint_state_sub_;
   ros::ServiceServer reset_pose_server_;
-  ros::ServiceServer reset_tool_pose_server_;
+  ros::ServiceServer reset_tool_center_server_;
   ros::ServiceServer hold_pose_server_;
   ros::ServiceServer move_tool_center_server_;
 

@@ -83,7 +83,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   gripper_cmd_sub_ = nh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
 
   reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
-  reset_tool_pose_server_ = pnh_.advertiseService("reset_tool_pose", &JoystickControl::resetToolPoseCb, this);
+  reset_tool_center_server_ = pnh_.advertiseService("reset_tool_center", &JoystickControl::resetToolCenterCb, this);
   hold_pose_server_ = pnh_.advertiseService("hold_pose", &JoystickControl::holdPoseCb, this);
   move_tool_center_ = pnh_.advertiseService("move_tool_center", &JoystickControl::moveToolCenterCb, this);
   return true;
@@ -311,7 +311,7 @@ bool JoystickControl::resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs:
   return true;
 }
 
-bool JoystickControl::resetToolPoseCb(std_srvs::EmptyRequest&, std_srvs::EmptyResponse&)
+bool JoystickControl::resetToolCenterCb(std_srvs::EmptyRequest&, std_srvs::EmptyResponse&)
 {
   reset_tool_center_ = true;
   return true;
