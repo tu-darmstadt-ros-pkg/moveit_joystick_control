@@ -18,9 +18,7 @@ JoystickControl::JoystickControl()
     joint_state_received_(false),
     hold_pose_(false),
     tf_listener_(tf_buffer_)
-{
-
-}
+{}
 
 bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::NodeHandle& nh, ros::NodeHandle& pnh)
 {
@@ -92,6 +90,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
   reset_tool_pose_server_ = pnh_.advertiseService("reset_tool_pose", &JoystickControl::resetToolPoseCb, this);
   hold_pose_server_ = pnh_.advertiseService("hold_pose", &JoystickControl::holdPoseCb, this);
+  move_tool_center_ = pnh_.advertiseService("move_tool_center", &JoystickControl::moveToolCenterCb, this);
   return true;
 }
 
@@ -295,7 +294,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   if (!enabled_) return;
   // Update command
-  move_tool_center_ = config_["move_tool_center"]->isPressed(*joy_ptr);
 }
 
 void JoystickControl::twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg)
@@ -358,6 +356,12 @@ bool JoystickControl::holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::Se
       hold_goal_pose_ = getPoseInFrame(ee_goal_pose_, "odom");
     }
   }
+  return true;
+}
+
+bool JoystickControl::moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&)
+{
+  move_tool_center_ = request.data;
   return true;
 }
 

@@ -49,6 +49,7 @@ private:
   bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
   bool resetToolPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
   bool holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
+  bool moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
 
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame
@@ -101,12 +102,14 @@ private:
 
   ros::Subscriber twist_cmd_sub_;
   ros::Subscriber gripper_cmd_sub_;
+  ros::Subscriber move_tool_twist_sub_;
   ros::Subscriber enable_sub_;
   ros::Subscriber joy_sub_;
   ros::Subscriber joint_state_sub_;
   ros::ServiceServer reset_pose_server_;
   ros::ServiceServer reset_tool_pose_server_;
   ros::ServiceServer hold_pose_server_;
+  ros::ServiceServer move_tool_center_server_;
 
   ros::Publisher goal_pose_pub_;
   ros::Publisher robot_state_pub_;
