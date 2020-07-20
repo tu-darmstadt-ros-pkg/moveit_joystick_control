@@ -11,6 +11,7 @@
 #include <tf2_ros/transform_listener.h>
 #include <sensor_msgs/Joy.h>
 #include <std_msgs/Float64.h>
+#include <std_srvs/Empty.h>
 
 #include <moveit_joystick_control/inverse_kinematics.h>
 #include <moveit_joystick_control/controller_mapping/controller_mapper_factory.h>
@@ -39,10 +40,13 @@ private:
   bool computeNewGoalPose(const ros::Duration& period);
   void updateGripper(const ros::Time& time, const ros::Duration& period);
   void loadJoystickConfig(const ros::NodeHandle& nh);
+
   void joyCb(const sensor_msgs::JoyConstPtr& joy_ptr);
   void twistCmdCb(const geometry_msgs::TwistConstPtr& twist_msg);
   void gripperCmdCb(const std_msgs::Float64ConstPtr& float_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
+  bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
+
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame
   /// Pose has to be relative to base frame

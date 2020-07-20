@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   controller_interface
   hardware_interface
+  std_msgs
+  std_srvs
 )
 
 ###################################
@@ -24,7 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES moveit_joystick_control
-  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions moveit_msgs tf2_ros controller_interface hardware_interface
+  CATKIN_DEPENDS moveit_core moveit_ros_planning sensor_msgs kdl_parser urdf eigen_conversions moveit_msgs tf2_ros controller_interface hardware_interface std_msgs std_srvs
 #  DEPENDS system_lib
 )
 

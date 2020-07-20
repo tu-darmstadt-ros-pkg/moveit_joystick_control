@@ -89,6 +89,8 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
 
   std::string gripper_topic = pnh_.param("gripper_cmd_topic", std::string("gripper_cmd"));
   gripper_cmd_sub_ = nh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
+
+  reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
   return true;
 }
 
@@ -293,9 +295,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   if (!enabled_) return;
   // Update command
-  if (config_["reset"]->isPressed(*joy_ptr)) {
-    reset_pose_ = true;
-  }
   if (config_["reset_tool_center"]->isPressed(*joy_ptr)) {
     reset_tool_center_ = true;
   }
@@ -354,6 +353,12 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
       }
     }
   }
+}
+
+bool JoystickControl::resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/)
+{
+  reset_pose_ = true;
+  return true;
 }
 
 void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map)
