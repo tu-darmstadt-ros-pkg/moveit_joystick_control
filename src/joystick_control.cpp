@@ -91,6 +91,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   gripper_cmd_sub_ = nh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
 
   reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
+  reset_tool_pose_server_ = pnh_.advertiseService("reset_tool_pose", &JoystickControl::resetToolPoseCb, this);
   return true;
 }
 
@@ -295,10 +296,6 @@ void JoystickControl::joyCb(const sensor_msgs::JoyConstPtr& joy_ptr)
 {
   if (!enabled_) return;
   // Update command
-  if (config_["reset_tool_center"]->isPressed(*joy_ptr)) {
-    reset_tool_center_ = true;
-  }
-
   if (config_["hold_pose"]->isPressed(*joy_ptr)) {
     // If button is pressed the first time, toggle 'hold_pose'
     if (!hold_pose_pressed_) { // Check if button is still pressed
@@ -358,6 +355,12 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
 bool JoystickControl::resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/)
 {
   reset_pose_ = true;
+  return true;
+}
+
+bool JoystickControl::resetToolPoseCb(std_srvs::EmptyRequest&, std_srvs::EmptyResponse&)
+{
+  reset_tool_center_ = true;
   return true;
 }
 

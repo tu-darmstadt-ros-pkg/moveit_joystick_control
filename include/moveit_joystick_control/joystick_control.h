@@ -46,6 +46,7 @@ private:
   void gripperCmdCb(const std_msgs::Float64ConstPtr& float_ptr);
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
+  bool resetToolPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
 
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame
