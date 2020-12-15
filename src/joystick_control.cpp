@@ -77,10 +77,10 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
 
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
-  twist_cmd_sub_ = nh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
+  twist_cmd_sub_ = pnh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
 
   std::string gripper_topic = pnh_.param("gripper_cmd_topic", std::string("gripper_cmd"));
-  gripper_cmd_sub_ = nh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
+  gripper_cmd_sub_ = pnh.subscribe(gripper_topic, 10, &JoystickControl::gripperCmdCb, this);
 
   reset_pose_server_ = pnh_.advertiseService("reset_pose", &JoystickControl::resetPoseCb, this);
   reset_tool_center_server_ = pnh_.advertiseService("reset_tool_center", &JoystickControl::resetToolCenterCb, this);
