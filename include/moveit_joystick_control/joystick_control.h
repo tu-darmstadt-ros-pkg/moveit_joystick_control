@@ -45,8 +45,8 @@ private:
   void jointStateCb(const sensor_msgs::JointStateConstPtr& joint_state_msg);
   bool resetPoseCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
   bool resetToolCenterCb(std_srvs::EmptyRequest& /*request*/, std_srvs::EmptyResponse& /*response*/);
-  bool holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
-  bool moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&);
+  bool holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse& response);
+  bool moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse& response);
 
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
   /// Transforms pose to desired frame

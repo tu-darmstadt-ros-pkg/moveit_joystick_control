@@ -317,7 +317,7 @@ bool JoystickControl::resetToolCenterCb(std_srvs::EmptyRequest&, std_srvs::Empty
   return true;
 }
 
-bool JoystickControl::holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&)
+bool JoystickControl::holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse& response)
 {
   if (hold_pose_ != request.data) {
     hold_pose_ = request.data;
@@ -326,12 +326,14 @@ bool JoystickControl::holdPoseCb(std_srvs::SetBoolRequest& request, std_srvs::Se
       hold_goal_pose_ = getPoseInFrame(ee_goal_pose_, "odom");
     }
   }
+  response.success = true;
   return true;
 }
 
-bool JoystickControl::moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse&)
+bool JoystickControl::moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse& response)
 {
   move_tool_center_ = request.data;
+  response.success = true;
   return true;
 }
 
