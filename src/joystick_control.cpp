@@ -76,6 +76,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   goal_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
   robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
 
+  joint_state_sub_ = nh.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
   twist_cmd_sub_ = pnh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
 
