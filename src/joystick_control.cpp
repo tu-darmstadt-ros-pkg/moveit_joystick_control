@@ -77,6 +77,7 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
 
   joint_state_sub_ = nh.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
+
   std::string twist_topic = pnh_.param("twist_cmd_topic", std::string("twist_cmd"));
   twist_cmd_sub_ = pnh.subscribe(twist_topic, 10, &JoystickControl::twistCmdCb, this);
 
@@ -290,7 +291,7 @@ void JoystickControl::jointStateCb(const sensor_msgs::JointStateConstPtr& joint_
   } else {
     for (unsigned int joint_idx = 0; joint_idx < joint_state_msg->name.size(); joint_idx++) {
       const std::string& joint_name = joint_state_msg->name[joint_idx];
-      std::vector<std::string>::iterator it = std::find(last_state_.name.begin(), last_state_.name.end(), joint_name);
+      auto it = std::find(last_state_.name.begin(), last_state_.name.end(), joint_name);
       if (it != last_state_.name.end()) {
         // we know this joint already, update position
         size_t idx = static_cast<size_t>(it - last_state_.name.begin()); // save, because begin() is always <= it
@@ -363,9 +364,9 @@ void JoystickControl::publishRobotState(const std::vector<double>& arm_joint_sta
   std_msgs::ColorRGBA color;
   color.a = color.r = 1.0;
   color.b = color.g = 0.0;
-  for (auto it = contact_map.begin(); it != contact_map.end(); ++it) {
-    const std::string& link1 = it->first.first;
-    const std::string& link2 = it->first.second;
+  for (const auto& it : contact_map) {
+    const std::string& link1 = it.first.first;
+    const std::string& link2 = it.first.second;
     moveit_msgs::ObjectColor object_color;
     object_color.id = link1;
     object_color.color = color;
