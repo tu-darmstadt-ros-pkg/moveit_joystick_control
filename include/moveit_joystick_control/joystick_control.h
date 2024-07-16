@@ -33,6 +33,7 @@ public:
   void update(const ros::Time& time, const ros::Duration& period) override;
   void stopping(const ros::Time&) override;
 private:
+  void publishStatus() const;
   bool loadGripperJointLimits();
   void updateArm(const ros::Time& time, const ros::Duration& period);
   /// Updates the goal pose
@@ -107,6 +108,7 @@ private:
 
   ros::Publisher goal_pose_pub_;
   ros::Publisher robot_state_pub_;
+  ros::Publisher enabled_pub_;
 
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;

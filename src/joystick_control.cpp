@@ -2,6 +2,7 @@
 
 #include <moveit_joystick_control/common.h>
 #include <eigen_conversions/eigen_msg.h>
+#include <std_msgs/Bool.h>
 
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit/robot_state/conversions.h>
@@ -75,6 +76,8 @@ bool JoystickControl::init(hardware_interface::PositionJointInterface* hw, ros::
   // Subscribers and publishers
   goal_pose_pub_ = nh.advertise<geometry_msgs::PoseStamped>("goal_pose", 10);
   robot_state_pub_ = nh.advertise<moveit_msgs::DisplayRobotState>("robot_state", 10);
+  enabled_pub_ = pnh.advertise<std_msgs::Bool>("enabled", 10, true);
+  publishStatus();
 
   joint_state_sub_ = nh.subscribe("/joint_states", 10, &JoystickControl::jointStateCb, this);
 
@@ -105,6 +108,7 @@ void JoystickControl::starting(const ros::Time&)
   gripper_speed_ = 0.0;
   initialized_ = true;
   enabled_ = true;
+  publishStatus();
 
   ROS_INFO_STREAM("Joystick Control started.");
 }
@@ -140,6 +144,7 @@ void JoystickControl::stopping(const ros::Time&)
   if (!enabled_) return;
   ROS_INFO_STREAM("Joystick Control stopped.");
   enabled_ = false;
+  publishStatus();
 }
 
 bool JoystickControl::loadGripperJointLimits()
@@ -399,6 +404,11 @@ geometry_msgs::PoseStamped JoystickControl::getPoseInFrame(const Eigen::Affine3d
   pose_stamped.header.stamp = transform_stamped.header.stamp;
   tf::poseEigenToMsg(frame_to_pose, pose_stamped.pose);
   return pose_stamped;
+}
+void JoystickControl::publishStatus() const {
+  std_msgs::Bool bool_msg;
+  bool_msg.data = enabled_;
+  enabled_pub_.publish(bool_msg);
 }
 
 }
