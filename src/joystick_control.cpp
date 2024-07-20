@@ -145,6 +145,7 @@ void JoystickControl::stopping(const ros::Time&)
   ROS_INFO_STREAM("Joystick Control stopped.");
   enabled_ = false;
   publishStatus();
+  hideRobotState();
 }
 
 bool JoystickControl::loadGripperJointLimits()
@@ -409,6 +410,12 @@ void JoystickControl::publishStatus() const {
   std_msgs::Bool bool_msg;
   bool_msg.data = enabled_;
   enabled_pub_.publish(bool_msg);
+}
+void JoystickControl::hideRobotState() {
+  // Convert to msg
+  moveit_msgs::DisplayRobotState display_robot_state;
+  display_robot_state.hide = true;
+  robot_state_pub_.publish(display_robot_state);
 }
 
 }

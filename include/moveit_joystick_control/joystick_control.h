@@ -50,6 +50,7 @@ private:
   bool moveToolCenterCb(std_srvs::SetBoolRequest& request, std_srvs::SetBoolResponse& response);
 
   void publishRobotState(const std::vector<double>& arm_joint_states, const collision_detection::CollisionResult::ContactMap& contact_map_);
+  void hideRobotState();
   /// Transforms pose to desired frame
   /// Pose has to be relative to base frame
   geometry_msgs::PoseStamped getPoseInFrame(const Eigen::Affine3d& pose, std::string frame);
